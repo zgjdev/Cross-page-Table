@@ -1,0 +1,82 @@
+{
+  "document_id": "PMC_SYNTHETIC",
+  "source_split": "test",
+  "pages": [
+    {
+      "page_num": 4,
+      "width": 1126,
+      "height": 1500,
+      "words": [
+        {
+          "bbox": [140.0, 150.0, 220.0, 180.0],
+          "text": "Category",
+          "block_num": 0,
+          "line_num": 0,
+          "span_num": 0,
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "page_num": 5,
+      "width": 1126,
+      "height": 1500,
+      "words": [
+        {
+          "bbox": [130.0, 160.0, 200.0, 190.0],
+          "text": "Continued",
+          "block_num": 0,
+          "line_num": 0,
+          "span_num": 0,
+          "flags": 0
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "cells": [
+        {
+          "row_nums": [0],
+          "column_nums": [0, 1],
+          "is_column_header": true,
+          "align": "unknown",
+          "style": "none",
+          "indented": false,
+          "xml_text_content": "Category",
+          "xml_raw_text_content": "Category",
+          "xml_graphics_filenames": []
+        },
+        {
+          "row_nums": [1],
+          "column_nums": [0],
+          "is_column_header": false,
+          "align": "unknown",
+          "style": "none",
+          "indented": false,
+          "xml_text_content": "Synthetic value",
+          "xml_raw_text_content": "Synthetic value",
+          "xml_graphics_filenames": []
+        }
+      ],
+      "parts": [
+        {
+          "page_num": 4,
+          "page_object_num": 0,
+          "pdf_bbox": [74.4, 82.0, 529.7, 736.0],
+          "bbox": [140.0, 150.0, 1000.0, 1390.0]
+        },
+        {
+          "page_num": 5,
+          "page_object_num": 0,
+          "pdf_bbox": [68.3, 84.8, 257.8, 736.0],
+          "bbox": [130.0, 160.0, 488.0, 1390.0]
+        }
+      ],
+      "grid_top": [[[0, 0, 1, 2], [0, 0, 1, 2]], [[1, 0, 2, 1], null]],
+      "grid_con": [["Category", "Category"], ["Synthetic value", ""]],
+      "html": "<table><tr><th colspan=\"2\">Category</th></tr><tr><td>Synthetic value</td></tr></table>",
+      "original_markup": "<table-wrap>synthetic</table-wrap>"
+    }
+  ]
+}
