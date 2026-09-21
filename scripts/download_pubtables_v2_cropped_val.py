@@ -60,9 +60,9 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _category_from_archive(name: str) -> str:
-    category = name.removeprefix("PubTables-v2_Cropped-Tables_val_").removesuffix(".tar.gz")
-    return category.replace("-", "_")
+def cropped_extraction_root(dataset_root: Path) -> Path:
+    """Return the root expected by the paths embedded in the official archives."""
+    return dataset_root / "extracted"
 
 
 def main() -> int:
@@ -99,12 +99,12 @@ def main() -> int:
             )
         )
 
-    extracted_root = project_root / "data" / "pubtables-v2" / "extracted" / "Cropped Tables" / "val"
+    extracted_root = cropped_extraction_root(project_root / "data" / "pubtables-v2")
     archives: list[dict[str, object]] = []
     opened: list[tuple[tarfile.TarFile, Path, list[tarfile.TarInfo]]] = []
     try:
         for archive in downloaded:
-            category_root = extracted_root / _category_from_archive(archive.name)
+            category_root = extracted_root
             tar = tarfile.open(archive, "r:gz")
             members = tar.getmembers()
             safe_extraction_targets(members, category_root)
