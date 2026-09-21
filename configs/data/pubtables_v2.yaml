@@ -1,5 +1,5 @@
 repo_id: kensho/PubTables-v2
-revision: main
+revision: aa575e798cb00a296925e2086addb3e3fd9a1903
 local_root: data/pubtables-v2
 manifest_path: artifacts/manifests/pubtables-v2-repo.json
 seed: 20260724
