@@ -104,6 +104,7 @@ class RunManifest(BaseModel):
     logs_path: Path
     metrics_path: Path
     coverage: RunCoverage
+    credential_presence: dict[str, bool] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_utc_timestamp(self) -> Self:
