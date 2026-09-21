@@ -1,0 +1,13 @@
+model_name: tatr-v1.1-pub
+model_repo_id: microsoft/table-transformer-structure-recognition-v1.1-pub
+model_revision: 372e205368a9b7bd1b9fdcf906c1350999d48939
+input_track: pdf-text-assisted
+seed: 20260724
+thresholds:
+  table: 0.5
+  table column: 0.5
+  table row: 0.5
+  table column header: 0.5
+  table projected row header: 0.5
+  table spanning cell: 0.5
+  no object: 10.0

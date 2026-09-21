@@ -139,11 +139,11 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 
 **Interfaces:**
 - Produces: `load_pdf_words(path) -> list[dict]`
-- Produces: `scale_words_to_image(words, pdf_bbox, image_size) -> list[dict]`
+- Produces: `normalize_words_to_image(words, image_size) -> list[dict]`；PubTables-v2 Cropped Tables words 按官方推理约定已是图像坐标，只做类型验证、微小越界裁剪和阅读顺序字段补全，不再从 PDF 坐标缩放
 - Produces: `tatr_objects_to_prediction(outputs, words, thresholds) -> PredictionRecord`
 - Consumes: Cropped Tables JSONL manifest，对应 words/XML，`checkpoints/tatr-v1.1-pub`
 
-- [ ] **Step 1: 写 bbox 测试，使用已知 PDF 尺寸和图像尺寸确认 x/y 独立缩放、边界裁剪和非法 bbox 拒绝**
+- [ ] **Step 1: 写 bbox 测试，确认官方已是图像坐标的 words 不被二次缩放，微小越界被裁剪，倒置或超出容差的 bbox 被拒绝**
 - [ ] **Step 2: 写 ID/真值关联测试，确保每张 cropped image 恰好匹配一个 words 和一个 table annotation**
 - [ ] **Step 3: 写合成结构输出测试，确认行、列、表头、spanning cell 和 Direct Text 被传给官方 `objects_to_cells`/post-processing 适配层**
 - [ ] **Step 4: 运行 `pytest tests/evaluation/test_tatr.py -v`，确认按预期失败**
