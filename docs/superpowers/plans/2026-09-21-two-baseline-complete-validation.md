@@ -14,6 +14,7 @@
 - 仅使用 validation；test split 不得参与调试、阈值、规则、提示词或模型选择。
 - `TATR-v1.1-Pub + Direct Text` 必须标为 PDF-text-assisted；dots.ocr 必须标为 image-only，不得合并排名。
 - 服务器只访问 `/data01/public/zhengguojie/paper`，不删除、移动、截断或覆盖已有数据和结果。
+- PubTables-v2 Cropped Tables 数据只允许直接下载到服务器项目目录，不得下载到本地或经本地中转。
 - 新数据、新日志和新输出使用新的 UTC 时间戳目录；同步排除 `data/`、`artifacts/`、`outputs/`、`logs/`、`checkpoints/` 和 `.venvs/`。
 - GPU 任务前必须检查显存和进程，不终止任何其他用户进程。
 - Full Documents 必须覆盖 val 全部 13,871 页，不得使用真值预筛选含表页。
@@ -150,7 +151,7 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 - [ ] **Step 6: 运行 TATR 单元测试、全部 evaluation tests 和 Ruff，预期 PASS**
 - [ ] **Step 7: 提交 `git commit -m "feat: add tatr direct text validation runner"`**
 
-### Task 6: Cropped Tables val 安全下载与 run manifest
+### Task 6: Cropped Tables val 服务器下载工具与 run manifest
 
 **Files:**
 - Create: `scripts/download_pubtables_v2_cropped_val.py`
@@ -166,7 +167,7 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 - [ ] **Step 1: 写测试，向伪造的 Hugging Face 文件列表混入 train/test/Single Pages，确认选择器只返回 Cropped Tables val 四类归档**
 - [ ] **Step 2: 写 run manifest 测试，确保缺少 Git commit、dataset/model revision、input hash、command、seed、GPU、路径或覆盖计数任一字段都无法通过验证**
 - [ ] **Step 3: 运行两个测试文件，确认按预期失败**
-- [ ] **Step 4: 实现只新增归档和解压目录的下载器，已有目标拒绝覆盖；在 manifest 中保存官方路径、字节数、resolved SHA 和本地目标**
+- [ ] **Step 4: 本地只实现和测试下载器代码，不执行任何数据下载；下载器只新增归档和解压目录，已有目标拒绝覆盖，manifest 保存官方路径、字节数、resolved SHA 和服务器目标**
 - [ ] **Step 5: 实现 run manifest 采集，敏感环境变量仅记录变量名是否存在，绝不记录值**
 - [ ] **Step 6: 运行新测试、全部 pytest 和 Ruff，预期 PASS**
 - [ ] **Step 7: 提交 `git commit -m "feat: pin cropped validation data and run manifests"`**
@@ -181,10 +182,10 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 - Consumes: Tasks 1–6 的已提交代码
 - Produces: TATR cropped、dots cropped、dots full-doc 的 smoke 预测、指标、失败索引和运行清单
 
-- [ ] **Step 1: 本地运行 `pytest -v`、`ruff check .` 和 `git diff --check`，全部通过后记录 commit SHA**
+- [ ] **Step 1: 本地运行 `pytest -v`、对本计划新增/修改的一方文件运行 `ruff check`（不将固定 `third_party/` 上游源码纳入 Ruff 门禁），再运行 `git diff --check`；全部通过后记录 commit SHA**
 - [ ] **Step 2: 只读检查 `ssh 172.17.60.82 'cd /data01/public/zhengguojie/paper && git status --short --branch && nvidia-smi'`，记录 GPU 型号、显存、进程和项目状态**
 - [ ] **Step 3: 用不带 `--delete` 的增量同步更新代码，显式排除 `data/ artifacts/ outputs/ logs/ checkpoints/ .venvs/`；同步后确认服务器已有数据和输出目录仍在**
-- [ ] **Step 4: 运行下载器将四个 Cropped Tables val 归档新增到 `data/pubtables-v2/archives/<timestamp>/`，解压到 `data/pubtables-v2/extracted/Cropped Tables/val/`，核对数量、大小、压缩包可读性和四类 ID 关联率**
+- [ ] **Step 4: 仅在服务器 `/data01/public/zhengguojie/paper` 中运行下载器，使四个 Cropped Tables val 归档从 Hugging Face 直接新增到服务器 `data/pubtables-v2/archives/<timestamp>/`，解压到服务器 `data/pubtables-v2/extracted/Cropped Tables/val/`；本地不下载、不中转，服务器端核对数量、大小、压缩包可读性和四类 ID 关联率**
 - [ ] **Step 5: 生成三份全量输入清单和三份 smoke 子清单；Full Documents 全量清单必须恰好 13,871 条**
 - [ ] **Step 6: 选择显存充足且无冲突的 GPU，运行 TATR smoke；检查 100% 真值关联、覆盖、HTML 可解析率、峰值显存和离线复评一致性**
 - [ ] **Step 7: 运行 dots cropped smoke 和一篇完整跨页文档 smoke；后者必须包含该文档的无表页**
@@ -209,7 +210,7 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 - [ ] **Step 5: 生成阶段结果表，分开 PDF-text-assisted 与 image-only，列出样本数、覆盖率、Acc-Top/Con、GriTS-Top/Con、解析率、非法 HTML、推理失败、总时间和单样本时间分布**
 - [ ] **Step 6: 文档显式区分“项目实测”、“论文报告”和“待核验”，说明 TATR-v1.1 不等于 v1.2，Full Documents 结果未做跨页合并**
 - [ ] **Step 7: 更新 research handoff，引用精确的 run manifest、metrics 和 failures 路径**
-- [ ] **Step 8: 重跑 `pytest -v`、`ruff check .`、`git diff --check`，确认全部通过**
+- [ ] **Step 8: 重跑 `pytest -v`、本计划新增/修改一方文件的 `ruff check`、`git diff --check`，确认全部通过**
 - [ ] **Step 9: 提交 `git commit -m "docs: report complete two baseline validation"`**
 
 ## 计划自审
@@ -218,4 +219,3 @@ def test_prediction_requires_error_message_for_error_status() -> None:
 - 每个生产代码任务都是先写失败测试，再写最小实现，然后运行定向和全量验证。
 - 稳定 ID、`PredictionRecord`、`CoverageReport`、`RunManifest` 和评分接口在前置任务定义，后续任务名称一致。
 - 未包含 test split 运行、模型训练、continuation oracle、跨页合并或未公开权重的替代实现。
-
