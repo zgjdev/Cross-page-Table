@@ -111,6 +111,28 @@ def test_multiple_tables_use_order_independent_matching() -> None:
     assert metrics["GriTS-Con"] == pytest.approx(1)
 
 
+def test_truth_outside_manifest_is_not_part_of_smoke_scope() -> None:
+    metrics, _ = score_predictions(
+        [_entry("a.jpg", "a")],
+        [_prediction("a.jpg", "a", [HTML_A])],
+        {"a": [HTML_A], "b": [HTML_B]},
+        require_complete=True,
+    )
+
+    assert metrics["units_scored"] == 1
+    assert metrics["GriTS-Top"] == pytest.approx(1)
+
+
+def test_manifest_unit_requires_truth_entry() -> None:
+    with pytest.raises(ValueError, match="missing truth"):
+        score_predictions(
+            [_entry("a.jpg", "a")],
+            [_prediction("a.jpg", "a", [])],
+            {"b": [HTML_B]},
+            require_complete=True,
+        )
+
+
 @pytest.mark.parametrize(
     "manifest,predictions",
     [
