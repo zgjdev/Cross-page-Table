@@ -115,7 +115,15 @@ def score_predictions(
                 continue
             predictions_by_unit[record.unit_id].append(html)
 
-    for unit_id, htmls in truth_by_unit.items():
+    manifest_units = {entry.unit_id for entry in manifest}
+    missing_truth = sorted(manifest_units - truth_by_unit.keys())
+    if missing_truth:
+        raise ValueError(
+            f"missing truth for {len(missing_truth)} manifest units: {missing_truth[0]}"
+        )
+
+    for unit_id in sorted(manifest_units):
+        htmls = truth_by_unit[unit_id]
         for html in htmls:
             try:
                 cells = html_to_cell_list(html)
@@ -124,15 +132,14 @@ def score_predictions(
             except (TypeError, ValueError) as error:
                 raise ValueError(f"invalid truth HTML for {unit_id}: {error}") from error
 
-    manifest_units = {entry.unit_id for entry in manifest}
-    units = sorted(manifest_units | truth_by_unit.keys() | predictions_by_unit.keys())
+    units = sorted(manifest_units | predictions_by_unit.keys())
     evaluator = GritsEvaluator(metrics=["top", "con"])
     for unit_id in units:
         evaluator.eval_htmls(
-            truth_by_unit.get(unit_id, []),
+            truth_by_unit[unit_id] if unit_id in manifest_units else [],
             predictions_by_unit.get(unit_id, []),
         )
-    if sum(len(htmls) for htmls in truth_by_unit.values()) == 0:
+    if sum(len(truth_by_unit[unit_id]) for unit_id in manifest_units) == 0:
         raw_metrics = {
             f"grits_{metric}{suffix}": 0.0
             for metric in ("top", "con")
