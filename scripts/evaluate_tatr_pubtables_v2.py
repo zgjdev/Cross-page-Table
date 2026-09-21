@@ -19,6 +19,7 @@ from cptla.evaluation.tatr import (
     associated_cropped_paths,
     load_pdf_words,
     make_official_postprocessor,
+    normalize_tatr_processor_size,
     normalize_words_to_image,
     tatr_objects_to_prediction,
 )
@@ -74,8 +75,12 @@ def main() -> int:
     postprocessor = make_official_postprocessor(postprocess_module)
 
     processor = AutoImageProcessor.from_pretrained(
-        args.model, local_files_only=True, revision=config["model_revision"]
+        args.model,
+        local_files_only=True,
+        revision=config["model_revision"],
+        use_fast=False,
     )
+    processor.size = normalize_tatr_processor_size(processor.size)
     model = AutoModelForObjectDetection.from_pretrained(
         args.model,
         local_files_only=True,

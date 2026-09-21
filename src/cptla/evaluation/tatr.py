@@ -26,6 +26,17 @@ STRUCTURE_CLASS_NAMES = [
 ]
 
 
+def normalize_tatr_processor_size(size: dict[str, int]) -> dict[str, int]:
+    """Adapt the legacy max-longest-edge config without changing its resize semantics."""
+    normalized = dict(size)
+    if set(normalized) == {"longest_edge"}:
+        longest_edge = normalized["longest_edge"]
+        if not isinstance(longest_edge, int) or longest_edge <= 0:
+            raise ValueError(f"invalid TATR longest_edge: {longest_edge}")
+        normalized["shortest_edge"] = longest_edge
+    return normalized
+
+
 def load_pdf_words(path: Path) -> list[dict[str, object]]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(value, dict):
