@@ -4,10 +4,15 @@ from pathlib import Path
 import pytest
 
 from scripts.download_pubtables_v2_cropped_val import (
+    cropped_extraction_root,
     expected_archive_names,
     safe_extraction_targets,
     select_cropped_val_archives,
 )
+
+
+def test_cropped_archives_extract_from_their_embedded_collection_root(tmp_path: Path) -> None:
+    assert cropped_extraction_root(tmp_path) == tmp_path / "extracted"
 
 
 def test_selects_only_four_cropped_validation_archives() -> None:
