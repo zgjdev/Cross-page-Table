@@ -19,6 +19,8 @@ class PredictionRecord(BaseModel):
     tables_html: list[str]
     elapsed_sec: float = Field(ge=0)
     error: str | None = None
+    raw_output: str | None = None
+    warnings: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_error_state(self) -> Self:
