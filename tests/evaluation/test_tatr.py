@@ -9,9 +9,22 @@ from cptla.evaluation.tatr import (
     cells_to_html,
     load_pdf_words,
     make_official_postprocessor,
+    normalize_tatr_processor_size,
     normalize_words_to_image,
     tatr_objects_to_prediction,
 )
+
+
+def test_normalize_tatr_processor_size_preserves_official_max_resize() -> None:
+    assert normalize_tatr_processor_size({"longest_edge": 800}) == {
+        "shortest_edge": 800,
+        "longest_edge": 800,
+    }
+
+
+def test_normalize_tatr_processor_size_preserves_modern_config() -> None:
+    size = {"shortest_edge": 800, "longest_edge": 1333}
+    assert normalize_tatr_processor_size(size) == size
 
 
 def test_load_pdf_words_accepts_wrapped_and_direct_lists(tmp_path: Path) -> None:
