@@ -22,10 +22,10 @@ Current literature and report documents are migrated as follows:
 
 | Current file | English file | Chinese file |
 |---|---|---|
-| `docs/literature/search-protocol.md` | `docs/literature/search-protocol.en.md` | `docs/literature/search-protocol.zh-CN.md` |
-| `docs/literature/synthesis.md` | `docs/literature/synthesis.en.md` | `docs/literature/synthesis.zh-CN.md` |
-| `docs/reports/novelty-gate.md` | `docs/reports/novelty-gate.en.md` | `docs/reports/novelty-gate.zh-CN.md` |
-| `docs/reports/pubtables-v2-inventory.md` | `docs/reports/pubtables-v2-inventory.en.md` | `docs/reports/pubtables-v2-inventory.zh-CN.md` |
+| `docs/literature/search-protocol.md` | `docs/literature/2026-07-24-search-protocol.en.md` | `docs/literature/2026-07-24-search-protocol.zh-CN.md` |
+| `docs/literature/synthesis.md` | `docs/literature/2026-08-02-literature-synthesis.en.md` | `docs/literature/2026-08-02-literature-synthesis.zh-CN.md` |
+| `docs/reports/novelty-gate.md` | `docs/reports/2026-07-24-novelty-gate.en.md` | `docs/reports/2026-07-24-novelty-gate.zh-CN.md` |
+| `docs/reports/pubtables-v2-inventory.md` | `docs/reports/2026-07-24-pubtables-v2-inventory.en.md` | `docs/reports/2026-07-24-pubtables-v2-inventory.zh-CN.md` |
 
 Future paper manuscripts use the same convention, for example:
 

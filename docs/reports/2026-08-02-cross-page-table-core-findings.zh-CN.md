@@ -96,7 +96,7 @@ PubTables-v2 Full Documents 提供逻辑表格、页面分片溯源、相邻页�
 
 截至 2026-08-02，公开大规模 Full Documents 设置中最高的内容 exact 是 Claude Opus 4.6 的 `Acc_Con = 0.2452`，最高结构 exact 是其 `Acc_Top = 0.5799`；显式逐页识别加拼接流水线中，POTATR + merging 的 `Acc_Con = 0.2176`。FinDocBench 在 472 张跨页表上报告 LingDT-VL-OCR 平均 `TEDS = 0.8915`，但没有 exact match。VCCT 在 300 张私有领域表上报告结构零错误类 `SIR = 82.0%`，但其私有数据、未评审状态和引用质量问题使其不能作为通用可复现 SOTA。[1][2][4][25]
 
-这些数字不能合并排名：`Acc_Con` 要求结构和内容完全匹配，`Acc_Top` 只要求拓扑完全匹配，而 TEDS/GriTS 是软相似度。PubTables-v2 Full Documents 还同时评分文档中的单页表，因此 `0.2452` 不是仅针对跨页拼接模块的完全正确率。完整对比见 [`cross-page-table-sota.zh-CN.md`](cross-page-table-sota.zh-CN.md)。
+这些数字不能合并排名：`Acc_Con` 要求结构和内容完全匹配，`Acc_Top` 只要求拓扑完全匹配，而 TEDS/GriTS 是软相似度。PubTables-v2 Full Documents 还同时评分文档中的单页表，因此 `0.2452` 不是仅针对跨页拼接模块的完全正确率。完整对比见 [`2026-08-02-cross-page-table-sota.zh-CN.md`](2026-08-02-cross-page-table-sota.zh-CN.md)。
 
 | 工作 | 主要能力 | 已报告证据 | 缺失能力 | 在本项目中的角色 |
 |---|---|---|---|---|

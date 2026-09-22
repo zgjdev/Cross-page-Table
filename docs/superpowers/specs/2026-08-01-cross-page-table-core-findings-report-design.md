@@ -13,8 +13,8 @@ the next research step should be.
 
 ## 2. Outputs
 
-- `docs/reports/cross-page-table-core-findings.en.md`
-- `docs/reports/cross-page-table-core-findings.zh-CN.md`
+- `docs/reports/2026-08-02-cross-page-table-core-findings.en.md`
+- `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md`
 
 The two documents are independent, content-equivalent reports. The English version uses academic
 English; the Chinese version uses formal academic Chinese suitable for a supervisor briefing.

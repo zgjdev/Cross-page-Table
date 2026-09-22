@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Create `docs/reports/cross-page-table-core-findings.en.md` and `docs/reports/cross-page-table-core-findings.zh-CN.md` together.
+- Create `docs/reports/2026-08-02-cross-page-table-core-findings.en.md` and `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md` together.
 - Use only facts recorded in `papers.csv`, `search-log.csv`, the bilingual synthesis, novelty gate, and PubTables-v2 inventory.
 - Do not infer author names, venue details, DOI values, metrics, code releases, or experimental outcomes from model memory.
 - Preserve the `revise` decision and distinguish reviewed facts, synthesis, and pending validation.
@@ -22,12 +22,12 @@
 ### Task 1: Draft the English Evidence-to-Decision Report
 
 **Files:**
-- Create: `docs/reports/cross-page-table-core-findings.en.md`
+- Create: `docs/reports/2026-08-02-cross-page-table-core-findings.en.md`
 - Read: `docs/literature/papers.csv`
 - Read: `docs/literature/search-log.csv`
-- Read: `docs/literature/synthesis.en.md`
-- Read: `docs/reports/novelty-gate.en.md`
-- Read: `docs/reports/pubtables-v2-inventory.en.md`
+- Read: `docs/literature/2026-08-02-literature-synthesis.en.md`
+- Read: `docs/reports/2026-07-24-novelty-gate.en.md`
+- Read: `docs/reports/2026-07-24-pubtables-v2-inventory.en.md`
 
 **Interfaces:**
 - Consumes: 48 screened records, 31 full-read records, 56 logged searches, reviewed claims, and pinned dataset evidence
@@ -139,8 +139,8 @@ the `revise` token, and the five required metric expressions. Expected: no missi
 ### Task 2: Produce the Chinese Counterpart
 
 **Files:**
-- Read: `docs/reports/cross-page-table-core-findings.en.md`
-- Create: `docs/reports/cross-page-table-core-findings.zh-CN.md`
+- Read: `docs/reports/2026-08-02-cross-page-table-core-findings.en.md`
+- Create: `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md`
 
 **Interfaces:**
 - Consumes: the reviewed English report from Task 1
@@ -174,8 +174,8 @@ syntax mechanically.
 ### Task 3: Verify and Commit the Bilingual Report
 
 **Files:**
-- Verify: `docs/reports/cross-page-table-core-findings.en.md`
-- Verify: `docs/reports/cross-page-table-core-findings.zh-CN.md`
+- Verify: `docs/reports/2026-08-02-cross-page-table-core-findings.en.md`
+- Verify: `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md`
 
 **Interfaces:**
 - Consumes: the two complete reports
@@ -209,6 +209,6 @@ Run `git diff --stat`, inspect both complete reports, and verify that no unrelat
 - [x] **Step 5: Commit**
 
 ```powershell
-git add docs/reports/cross-page-table-core-findings.en.md docs/reports/cross-page-table-core-findings.zh-CN.md docs/superpowers/plans/2026-08-01-cross-page-table-core-findings-report.md
+git add docs/reports/2026-08-02-cross-page-table-core-findings.en.md docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md docs/superpowers/plans/2026-08-01-cross-page-table-core-findings-report.md
 git commit -m "docs: summarize cross-page table research findings"
 ```
