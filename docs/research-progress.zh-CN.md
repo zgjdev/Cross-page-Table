@@ -13,8 +13,9 @@
 1. 根目录 `AGENTS.md`；
 2. 本文档；
 3. `docs/research-handoff-2026-08-26.zh-CN.md`；
-4. 与当前任务相关的 `docs/experiments/` 最新记录；
-5. 服务器 `/data01/public/zhengguojie/paper` 中本文列出的日志、预测和指标。
+4. `docs/reports/teacher-progress-report-2026-09-22.zh-CN.md`；
+5. 与当前任务相关的 `docs/experiments/` 最新记录；
+6. 服务器 `/data01/public/zhengguojie/paper` 中本文列出的日志、预测和指标。
 
 本文是状态索引，不替代详细实验记录。服务器保存的原始日志、预测、指标和校验和是实验完成情况的主要证据。
 
