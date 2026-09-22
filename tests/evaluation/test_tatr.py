@@ -1,4 +1,5 @@
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -107,9 +108,35 @@ def test_cells_to_html_preserves_header_and_spans() -> None:
     ]
 
     assert cells_to_html(cells) == (
-        '<table><thead><th colspan="2">Header</th></thead>'
-        "<tr><td>A</td><td>B</td></tr></table>"
+        '<table><thead><tr><th colspan="2">Header</th></tr></thead>'
+        "<tbody><tr><td>A</td><td>B</td></tr></tbody></table>"
     )
+
+
+def test_cells_to_html_creates_one_table_row_per_multilevel_header_row() -> None:
+    cells = [
+        {
+            "row_nums": [0],
+            "column_nums": [0, 1],
+            "cell_text": "Group",
+            "header": True,
+        },
+        {"row_nums": [1], "column_nums": [0], "cell_text": "A", "header": True},
+        {"row_nums": [1], "column_nums": [1], "cell_text": "B", "header": True},
+        {"row_nums": [2], "column_nums": [0], "cell_text": "1", "header": False},
+        {"row_nums": [2], "column_nums": [1], "cell_text": "2", "header": False},
+    ]
+
+    root = ET.fromstring(cells_to_html(cells))
+
+    assert [[cell.text for cell in row] for row in root.findall("./thead/tr")] == [
+        ["Group"],
+        ["A", "B"],
+    ]
+    assert root.find("./thead/tr/th").attrib == {"colspan": "2"}
+    assert [[cell.text for cell in row] for row in root.findall("./tbody/tr")] == [
+        ["1", "2"]
+    ]
 
 
 def test_tatr_adapter_passes_objects_and_direct_text_to_postprocessor() -> None:
@@ -146,7 +173,7 @@ def test_tatr_adapter_passes_objects_and_direct_text_to_postprocessor() -> None:
     )
 
     assert captured["words"] == [{"bbox": [0, 0, 5, 5], "text": "Direct"}]
-    assert record.tables_html == ["<table><tr><td>Direct</td></tr></table>"]
+    assert record.tables_html == ["<table><tbody><tr><td>Direct</td></tr></tbody></table>"]
     assert record.status == "ok"
     assert record.raw_output is not None
 

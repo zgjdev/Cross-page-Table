@@ -142,32 +142,34 @@ def cells_to_html(cells: list[dict[str, object]]) -> str:
     ordered = sorted(cells, key=lambda cell: min(cell["column_nums"]))  # type: ignore[arg-type]
     ordered = sorted(ordered, key=lambda cell: min(cell["row_nums"]))  # type: ignore[arg-type]
     table = ET.Element("table")
-    current_row = -1
-    row: ET.Element | None = None
-    cell_tag = "td"
+    rows: dict[int, list[dict[str, object]]] = {}
     for cell in ordered:
         row_nums = cell["row_nums"]
         column_nums = cell["column_nums"]
         if not isinstance(row_nums, list) or not isinstance(column_nums, list):
             raise ValueError("cell row_nums and column_nums must be lists")
-        this_row = min(row_nums)
-        attributes: dict[str, str] = {}
-        if len(column_nums) > 1:
-            attributes["colspan"] = str(len(column_nums))
-        if len(row_nums) > 1:
-            attributes["rowspan"] = str(len(row_nums))
-        if this_row > current_row:
-            current_row = this_row
-            if bool(cell.get("header", cell.get("column header", False))):
-                cell_tag = "th"
-                row = ET.SubElement(table, "thead")
-            else:
-                cell_tag = "td"
-                row = ET.SubElement(table, "tr")
-        if row is None:
-            raise ValueError("cell ordering did not create a row")
-        table_cell = ET.SubElement(row, cell_tag, attrib=attributes)
-        table_cell.text = str(cell.get("cell_text", cell.get("cell text", "")))
+        rows.setdefault(min(row_nums), []).append(cell)
+
+    sections: dict[bool, ET.Element] = {}
+    for row_cells in rows.values():
+        is_header = bool(
+            row_cells[0].get("header", row_cells[0].get("column header", False))
+        )
+        if is_header not in sections:
+            sections[is_header] = ET.SubElement(table, "thead" if is_header else "tbody")
+        row = ET.SubElement(sections[is_header], "tr")
+        for cell in row_cells:
+            row_nums = cell["row_nums"]
+            column_nums = cell["column_nums"]
+            if not isinstance(row_nums, list) or not isinstance(column_nums, list):
+                raise ValueError("cell row_nums and column_nums must be lists")
+            attributes: dict[str, str] = {}
+            if len(column_nums) > 1:
+                attributes["colspan"] = str(len(column_nums))
+            if len(row_nums) > 1:
+                attributes["rowspan"] = str(len(row_nums))
+            table_cell = ET.SubElement(row, "th" if is_header else "td", attrib=attributes)
+            table_cell.text = str(cell.get("cell_text", cell.get("cell text", "")))
     return ET.tostring(table, encoding="unicode", short_empty_elements=False)
 
 
