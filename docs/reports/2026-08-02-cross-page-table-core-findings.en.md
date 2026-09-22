@@ -198,7 +198,7 @@ general reproducible SOTA claim. [1][2][4][25]
 These values cannot be ranked together: `Acc_Con` requires exact structure and content,
 `Acc_Top` requires exact topology only, and TEDS/GriTS are soft similarities. PubTables-v2 Full
 Documents also scores single-page tables in the documents, so `0.2452` is not an isolated perfect
-cross-page-merging rate. See [`cross-page-table-sota.en.md`](cross-page-table-sota.en.md) for the
+cross-page-merging rate. See [`2026-08-02-cross-page-table-sota.en.md`](2026-08-02-cross-page-table-sota.en.md) for the
 full comparison.
 
 | Work | Main capability | Reported evidence | Missing capability | Role in this project |

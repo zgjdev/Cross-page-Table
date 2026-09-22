@@ -32,16 +32,16 @@ paper/
     data/pubtables_v2.yaml           # 数据仓库、collection 和本地路径配置
     experiments/continuation_vit.yaml# ViT continuation 基线配置
   docs/
-    literature/search-protocol.en.md # 英文检索式、纳排标准和筛选日志规范
-    literature/search-protocol.zh-CN.md # 中文对照版
+    literature/2026-07-24-search-protocol.en.md # 英文检索式、纳排标准和筛选日志规范
+    literature/2026-07-24-search-protocol.zh-CN.md # 中文对照版
     literature/papers.csv            # 结构化论文矩阵
     literature/search-log.csv        # 每轮检索来源、查询、日期和结果数
-    literature/synthesis.en.md       # 英文分类综述、方法对比和研究空白
-    literature/synthesis.zh-CN.md    # 中文对照版
-    reports/novelty-gate.en.md       # 英文选题审查
-    reports/novelty-gate.zh-CN.md    # 中文对照版
-    reports/pubtables-v2-inventory.en.md # 英文数据集清单报告
-    reports/pubtables-v2-inventory.zh-CN.md # 中文对照版
+    literature/2026-08-02-literature-synthesis.en.md       # 英文分类综述、方法对比和研究空白
+    literature/2026-08-02-literature-synthesis.zh-CN.md    # 中文对照版
+    reports/2026-07-24-novelty-gate.en.md       # 英文选题审查
+    reports/2026-07-24-novelty-gate.zh-CN.md    # 中文对照版
+    reports/2026-07-24-pubtables-v2-inventory.en.md # 英文数据集清单报告
+    reports/2026-07-24-pubtables-v2-inventory.zh-CN.md # 中文对照版
     reports/phase-1-exit.en.md        # 英文第一阶段验收报告
     reports/phase-1-exit.zh-CN.md     # 中文对照版
   src/cptla/
@@ -241,8 +241,8 @@ git commit -m "chore: initialize cross-page table research project"
 ### Task 2: 建立可审计的文献调研协议与论文矩阵
 
 **Files:**
-- Create: `docs/literature/search-protocol.en.md`
-- Create: `docs/literature/search-protocol.zh-CN.md`
+- Create: `docs/literature/2026-07-24-search-protocol.en.md`
+- Create: `docs/literature/2026-07-24-search-protocol.zh-CN.md`
 - Create: `docs/literature/papers.csv`
 - Create: `src/cptla/research/literature.py`
 - Create: `tests/research/test_literature.py`
@@ -342,8 +342,8 @@ def validate_literature_csv(path: Path) -> list[str]:
 
 - [ ] **Step 4: 写检索协议**
 
-Create `docs/literature/search-protocol.en.md` with these exact sections and decisions, then create
-`docs/literature/search-protocol.zh-CN.md` as a reviewed, structurally equivalent academic-Chinese version:
+Create `docs/literature/2026-07-24-search-protocol.en.md` with these exact sections and decisions, then create
+`docs/literature/2026-07-24-search-protocol.zh-CN.md` as a reviewed, structurally equivalent academic-Chinese version:
 
 ```markdown
 # Literature Search Protocol
@@ -432,10 +432,10 @@ git commit -m "docs: establish table research review protocol"
 **Files:**
 - Modify: `docs/literature/papers.csv`
 - Create: `docs/literature/search-log.csv`
-- Create: `docs/literature/synthesis.en.md`
-- Create: `docs/literature/synthesis.zh-CN.md`
-- Create: `docs/reports/novelty-gate.en.md`
-- Create: `docs/reports/novelty-gate.zh-CN.md`
+- Create: `docs/literature/2026-08-02-literature-synthesis.en.md`
+- Create: `docs/literature/2026-08-02-literature-synthesis.zh-CN.md`
+- Create: `docs/reports/2026-07-24-novelty-gate.en.md`
+- Create: `docs/reports/2026-07-24-novelty-gate.zh-CN.md`
 
 **Interfaces:**
 - Consumes: Task 2 的检索协议和论文矩阵
@@ -443,7 +443,7 @@ git commit -m "docs: establish table research review protocol"
 - Produces: 对核心研究命题的 `proceed`、`revise` 或 `stop` 决策
 
 本任务是进入数据下载和代码实现前的硬门槛。Task 4 及之后的任务不得在
-`docs/reports/novelty-gate.en.md` 与 `docs/reports/novelty-gate.zh-CN.md` 得出一致的 `proceed` 或明确修订后的 `revise` 结论前开始。
+`docs/reports/2026-07-24-novelty-gate.en.md` 与 `docs/reports/2026-07-24-novelty-gate.zh-CN.md` 得出一致的 `proceed` 或明确修订后的 `revise` 结论前开始。
 
 - [ ] **Step 1: 建立可重复的检索日志**
 
@@ -501,8 +501,8 @@ Expected: both values are at least `25`, equal, and the command exits 0.
 
 - [ ] **Step 5: 写分类综述与竞争工作对比**
 
-Create `docs/literature/synthesis.en.md` with these completed sections, then create
-`docs/literature/synthesis.zh-CN.md` with identical section order, tables, evidence, and conclusions:
+Create `docs/literature/2026-08-02-literature-synthesis.en.md` with these completed sections, then create
+`docs/literature/2026-08-02-literature-synthesis.zh-CN.md` with identical section order, tables, evidence, and conclusions:
 
 ```markdown
 # Cross-Page Table Literature Synthesis
@@ -525,7 +525,7 @@ Create `docs/literature/synthesis.en.md` with these completed sections, then cre
 
 - [ ] **Step 6: 做创新性审查**
 
-Create `docs/reports/novelty-gate.en.md` and `docs/reports/novelty-gate.zh-CN.md`, and逐条回答：
+Create `docs/reports/2026-07-24-novelty-gate.en.md` and `docs/reports/2026-07-24-novelty-gate.zh-CN.md`, and逐条回答：
 
 - 是否已有工作联合预测版式关系、跨页归属和列/行对应？
 - PubTables-v2 之后是否出现新的直接竞争论文或代码？
@@ -552,7 +552,7 @@ Run:
 Expected: tests pass and the validator prints `[]`.
 
 ```powershell
-git add docs/literature docs/reports/novelty-gate.en.md docs/reports/novelty-gate.zh-CN.md
+git add docs/literature docs/reports/2026-07-24-novelty-gate.en.md docs/reports/2026-07-24-novelty-gate.zh-CN.md
 git commit -m "docs: complete cross-page table literature review"
 ```
 
@@ -711,8 +711,8 @@ git commit -m "feat: define normalized document table schema"
 - Create: `src/cptla/data/inventory.py`
 - Create: `scripts/audit_pubtables_v2.py`
 - Create: `tests/data/test_inventory.py`
-- Create: `docs/reports/pubtables-v2-inventory.en.md` (generated, then reviewed)
-- Create: `docs/reports/pubtables-v2-inventory.zh-CN.md` (translated, then reviewed for parity)
+- Create: `docs/reports/2026-07-24-pubtables-v2-inventory.en.md` (generated, then reviewed)
+- Create: `docs/reports/2026-07-24-pubtables-v2-inventory.zh-CN.md` (translated, then reviewed for parity)
 - Create: `artifacts/manifests/pubtables-v2-repo.json` (generated, Git-ignored)
 
 **Interfaces:**
@@ -842,15 +842,15 @@ Run:
 
 ```powershell
 .venv\Scripts\python -m pytest tests\data\test_inventory.py -q
-.venv\Scripts\python scripts\audit_pubtables_v2.py --config configs\data\pubtables_v2.yaml --report docs\reports\pubtables-v2-inventory.en.md
+.venv\Scripts\python scripts\audit_pubtables_v2.py --config configs\data\pubtables_v2.yaml --report docs\reports\2026-07-24-pubtables-v2-inventory.en.md
 ```
 
 Expected: test passes; report contains a non-empty resolved SHA and positive file count. If Hugging Face is temporarily unreachable, preserve the test result and rerun only the second command when connectivity returns; do not invent inventory values.
 
 - [ ] **Step 6: 人工检查数据卡和文件格式**
 
-Record in `docs/reports/pubtables-v2-inventory.en.md`, then mirror and review the same facts in
-`docs/reports/pubtables-v2-inventory.zh-CN.md`:
+Record in `docs/reports/2026-07-24-pubtables-v2-inventory.en.md`, then mirror and review the same facts in
+`docs/reports/2026-07-24-pubtables-v2-inventory.zh-CN.md`:
 
 - exact dataset license, verified against the paper appendix as CDLA-Permissive-2.0 rather
   than the paper's CC BY 4.0 license;
@@ -868,7 +868,7 @@ distinctions, and audit conclusions.
 - [ ] **Step 7: Commit**
 
 ```powershell
-git add configs/data/pubtables_v2.yaml src/cptla/data/inventory.py scripts/audit_pubtables_v2.py tests/data/test_inventory.py docs/reports/pubtables-v2-inventory.en.md docs/reports/pubtables-v2-inventory.zh-CN.md
+git add configs/data/pubtables_v2.yaml src/cptla/data/inventory.py scripts/audit_pubtables_v2.py tests/data/test_inventory.py docs/reports/2026-07-24-pubtables-v2-inventory.en.md docs/reports/2026-07-24-pubtables-v2-inventory.zh-CN.md
 git commit -m "feat: add PubTables-v2 repository audit"
 ```
 

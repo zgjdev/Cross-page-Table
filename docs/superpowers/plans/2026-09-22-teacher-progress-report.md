@@ -23,10 +23,10 @@
 ### Task 1: 建立报告事实矩阵
 
 **Files:**
-- Read: `docs/research-progress.zh-CN.md`
+- Read: `docs/2026-09-22-research-progress.zh-CN.md`
 - Read: `docs/experiments/2026-09-21-two-baseline-smoke.zh-CN.md`
 - Read: `docs/experiments/2026-09-22-historical-dots-full-documents-audit.zh-CN.md`
-- Read: `docs/reports/result.md`
+- Read: `docs/reports/2026-09-20-cross-page-table-results-summary.md`
 - Read: `docs/superpowers/specs/2026-09-22-teacher-progress-report-design.md`
 
 **Interfaces:**
@@ -102,7 +102,7 @@
 ### Task 4: 一致性核验与进度索引更新
 
 **Files:**
-- Modify: `docs/research-progress.zh-CN.md`
+- Modify: `docs/2026-09-22-research-progress.zh-CN.md`
 - Verify: `docs/reports/teacher-progress-report-2026-09-22.zh-CN.md`
 
 **Interfaces:**
@@ -133,4 +133,4 @@ Expected: `git diff --check` 无错误；差异只包含目标报告和进度索
 
 - [ ] **Step 5: 提交报告**
 
-Run: `git add docs/reports/teacher-progress-report-2026-09-22.zh-CN.md docs/research-progress.zh-CN.md`，然后 `git commit -m "docs: add advisor progress report"`。
+Run: `git add docs/reports/teacher-progress-report-2026-09-22.zh-CN.md docs/2026-09-22-research-progress.zh-CN.md`，然后 `git commit -m "docs: add advisor progress report"`。

@@ -18,11 +18,11 @@
 
 研究依据和已整理的证据位于：
 
-- `docs/table-extraction-and-recovery-research-survey-2026.md`
-- `docs/table-extraction-research-execution-plan.md`
-- `docs/reports/cross-page-table-core-findings.zh-CN.md`
-- `docs/reports/cross-page-table-sota.zh-CN.md`
-- `docs/reports/novelty-gate.zh-CN.md`
+- `docs/2026-08-06-table-extraction-and-recovery-research-survey.md`
+- `docs/2026-09-20-table-extraction-research-execution-plan.md`
+- `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md`
+- `docs/reports/2026-08-02-cross-page-table-sota.zh-CN.md`
+- `docs/reports/2026-07-24-novelty-gate.zh-CN.md`
 
 ## 2. 研究目的与拟解决问题
 
@@ -148,6 +148,10 @@ artifacts/normalized/test-rejects.jsonl
 数据解压                   已完成
 统一格式标准化             已完成
 官方跨页标签字段审查       已完成
+TATR Cropped val 全量推理   已完成（13,384/13,384）
+TATR HTML/评分实现审计      已完成并修复
+TATR 修正正式评分           已完成（Acc-Con=0.3827）
+dots.ocr 严格协议 smoke     已完成
 官方关系样本构建           尚未完成
 派生结构标签与人工审计     尚未完成
 简单跨页基线               尚未完成
@@ -155,9 +159,13 @@ artifacts/normalized/test-rejects.jsonl
 正式测试集评估             尚未开始
 ```
 
-当前最重要的结论是：**数据准备已经完成，但研究实验还没有开始。** 不能把标准化成功误认为模型训练成功，也不能在没有关系样本和基线的情况下直接占用 GPU 训练。
+当前最重要的结论是：**数据准备和第一个正式页面结构基线已经完成，但跨页关系与重建实验尚未开始。** TATR-v1.1-Pub 在 PubTables-v2 Cropped Tables validation 的修正正式结果为 `GriTS-Top=0.8848`、`GriTS-Con=0.8704`、`Acc-Top=0.3897`、`Acc-Con=0.3827`。旧 `Acc-Con=0.0069` 来自表头 HTML 缺少 `<tr>` 的序列化缺陷，已经失效；完整证据见 `docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`。
 
 ## 7. 下一步行动计划
+
+### 阶段 0：修正结果误差分析
+
+从修正后的 TATR validation 预测中抽取 60–80 张，按长表、宽表、长且宽、复杂表头和 spanning cell 分层，统计额外/缺失行列、列过分割、表头、span 和文字归属错误。随后做 oracle 行数、列数、表头、span 和文字归属消融，确定约束化结构修复的优先级。`Acc-Top` 与 `Acc-Con` 仅相差约 0.7 个百分点，当前应优先研究结构，而不是继续优化 PDF Direct Text。
 
 ### 阶段 A：官方关系样本构建
 

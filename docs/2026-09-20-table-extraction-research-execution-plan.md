@@ -55,7 +55,7 @@
 | Granite-Vision-3.2-2B | [官方模型卡](https://huggingface.co/ibm-granite/granite-vision-3.2-2b) | 约 2B 参数通用文档视觉模型 | 生成结构化文档内容 | 兼顾通用视觉与文档任务 | 严格单元格结构和内容完全匹配仍较弱 | 中等规模开源 VLM 对照 |
 | DeepSeek-OCR | [论文：DeepSeek-OCR](https://arxiv.org/abs/2510.18234)；[官方仓库](https://github.com/deepseek-ai/DeepSeek-OCR) | 生成式 OCR/文档解析模型 | 从页面图像生成文本和表格结构 | OCR 与复杂页面理解能力较强 | 生成式文字和结构错误会共同降低 exact match | image-only OCR 基线 |
 | DeepSeek-OCR 2 | [论文：DeepSeek-OCR 2](https://arxiv.org/abs/2601.20552)；[官方仓库](https://github.com/deepseek-ai/DeepSeek-OCR) | DeepSeek-OCR 的后继版本 | 同上 | 在部分文档级任务上优于前代 | 不保证合法网格和内容全等 | image-only 强基线 |
-| dots.ocr | [论文：dots.ocr](https://arxiv.org/abs/2507.15530)；[官方仓库](https://github.com/rednote-hilab/dots.ocr) | 面向 PDF/页面转 Markdown/HTML 的端到端文档解析模型 | 页面图像直接生成结构化文档 | 在 PubTables-v2 的开源页面模型中表现较强；可接跨页合并模块 | 默认逐页处理；简单纵向合并虽然提升 TEDS，但未提升 `Acc-Con` | 开源端到端主基线、跨页消融基线 |
+| dots.ocr | [论文：dots.ocr](https://arxiv.org/abs/2512.02498)；[官方仓库](https://github.com/rednote-hilab/dots.ocr) | 面向 PDF/页面转 Markdown/HTML 的端到端文档解析模型 | 页面图像直接生成结构化文档 | 在 PubTables-v2 的开源页面模型中表现较强；可接跨页合并模块 | 默认逐页处理；简单纵向合并虽然提升 TEDS，但未提升 `Acc-Con` | 开源端到端主基线、跨页消融基线 |
 | OCRFlux-3B | [官方仓库](https://github.com/chatdoc-com/OCRFlux)（未确认独立论文） | 约 3B 参数的页面 OCR 与文档后处理系统 | 页面转 Markdown，再检测并重建跨页表/段落 | 显式支持跨页表重建；提供中英文跨页测试集 | 跨页重建主要报告 TEDS，未报告与 `Acc-Con` 等价的整表严格指标 | image-only 跨页系统对照 |
 | PaddleOCR-VL-1.5 | [技术报告：PaddleOCR-VL-1.5](https://arxiv.org/html/2601.21957v1) | 约 0.9B 参数文档 VLM，配合版面模型和后处理管线 | 页面元素识别后输出 Markdown/JSON | 模型紧凑，覆盖文字、表格、公式、印章和跨页表 | 公开论文没有跨页表专属 exact-match 结果 | 工业化 pipeline 对照 |
 | MonkeyOCR v1.5 | [论文：MonkeyOCR v1.5](https://arxiv.org/html/2511.10390v2) | 复杂文档解析 VLM/系统 | 页面解析并进行跨页和跨栏重建 | 支持嵌图、复杂表和跨页重建 | 跨页部分主要是案例展示，缺少统一严格指标 | 定性对照和复杂版式测试 |
@@ -78,7 +78,7 @@
 | 方法 | 论文/官方来源 | 输入 | 核心方法 | 已报告结果 | 与本研究的关系 |
 |---|---|---|---|---|---|
 | PubTables-v2 ViT-B/16 续表分类器 | [论文：PubTables-v2](https://arxiv.org/html/2512.10888v3)；[ViT 架构论文](https://arxiv.org/abs/2010.11929) | 两张相邻页面图像横向拼接 | 二分类判断前页最后一张表是否延续到后页 | F1=0.991、AUC=0.996 | 续表判断强基线；不能代表合并后的整表正确率 |
-| dots.ocr + ViT merging | [PubTables-v2 评测论文](https://arxiv.org/html/2512.10888v3)；[dots.ocr 论文](https://arxiv.org/abs/2507.15530) | 逐页 dots.ocr 输出 + ViT 续表结果 | 预测续表且列数相同后直接纵向拼接 | TEDS 和 GriTS 上升，但 `Acc-Con` 仍为 0.1180 | 必须超过的简单拼接基线 |
+| dots.ocr + ViT merging | [PubTables-v2 评测论文](https://arxiv.org/html/2512.10888v3)；[dots.ocr 论文](https://arxiv.org/abs/2512.02498) | 逐页 dots.ocr 输出 + ViT 续表结果 | 预测续表且列数相同后直接纵向拼接 | TEDS 和 GriTS 上升，但 `Acc-Con` 仍为 0.1180 | 必须超过的简单拼接基线 |
 | OCRFlux 跨页合并 | [官方仓库](https://github.com/chatdoc-com/OCRFlux)（未确认独立论文） | 相邻页 Markdown 元素和表格片段 | 先定位需合并元素，再由模型重建完整表 | 合并检测 Accuracy=0.986；表格合并 TEDS=0.950 | 跨页检测和重建对照；需在 PubTables-v2 上重新评测 `Acc-Con` |
 | VCCT | [论文：VCCT](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6811737) | 电力故障报告中的相邻页表格 | 表头检测、边框分析、前序页和文档上下文融合 | Cross-page structural integrity=82.0% | 行业领域专用对照；指标不等价于内容 exact match |
 
@@ -111,7 +111,7 @@
 
 1. [`TATR-v1.2-Pub + DT`](https://arxiv.org/html/2512.10888v3)：裁剪单表 PDF-text-assisted 主基线。
 2. [`POTATR + DT`](https://arxiv.org/html/2512.10888v3)：单页 PDF-text-assisted 主基线。
-3. [`dots.ocr`](https://arxiv.org/abs/2507.15530)：开源 image-only 页面和文档主基线。
+3. [`dots.ocr`](https://arxiv.org/abs/2512.02498)：开源 image-only 页面和文档主基线。
 4. [`Qwen2.5-VL-3B`](https://arxiv.org/abs/2502.13923) 或同规模开源 VLM：通用 VLM 微调基线。
 5. [`Claude Opus 4.6`](https://arxiv.org/html/2512.10888v3)：全文档闭源主基线，引用 PubTables-v2 公开评测结果；若重新测试需固定版本和提示词。
 6. [`ViT-B/16 + 直接纵向拼接`](https://arxiv.org/html/2512.10888v3)：跨页两阶段基线。

@@ -22,10 +22,10 @@
 ### Task 1: Migrate Literature Documents
 
 **Files:**
-- Rename: `docs/literature/search-protocol.md` to `docs/literature/search-protocol.en.md`
-- Create: `docs/literature/search-protocol.zh-CN.md`
-- Rename: `docs/literature/synthesis.md` to `docs/literature/synthesis.en.md`
-- Create: `docs/literature/synthesis.zh-CN.md`
+- Rename: `docs/literature/search-protocol.md` to `docs/literature/2026-07-24-search-protocol.en.md`
+- Create: `docs/literature/2026-07-24-search-protocol.zh-CN.md`
+- Rename: `docs/literature/synthesis.md` to `docs/literature/2026-08-02-literature-synthesis.en.md`
+- Create: `docs/literature/2026-08-02-literature-synthesis.zh-CN.md`
 
 **Interfaces:**
 - Consumes: existing English literature prose and shared `papers.csv`/`search-log.csv` evidence
@@ -39,10 +39,10 @@
 ### Task 2: Migrate Report Documents
 
 **Files:**
-- Rename: `docs/reports/novelty-gate.md` to `docs/reports/novelty-gate.en.md`
-- Create: `docs/reports/novelty-gate.zh-CN.md`
-- Rename: `docs/reports/pubtables-v2-inventory.md` to `docs/reports/pubtables-v2-inventory.en.md`
-- Create: `docs/reports/pubtables-v2-inventory.zh-CN.md`
+- Rename: `docs/reports/novelty-gate.md` to `docs/reports/2026-07-24-novelty-gate.en.md`
+- Create: `docs/reports/2026-07-24-novelty-gate.zh-CN.md`
+- Rename: `docs/reports/pubtables-v2-inventory.md` to `docs/reports/2026-07-24-pubtables-v2-inventory.en.md`
+- Create: `docs/reports/2026-07-24-pubtables-v2-inventory.zh-CN.md`
 
 **Interfaces:**
 - Consumes: existing reviewed report prose and pinned repository evidence

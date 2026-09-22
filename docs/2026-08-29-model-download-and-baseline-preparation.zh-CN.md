@@ -289,7 +289,7 @@ OCRFlux 更贴近显式跨页重建，但它在 PubTables-v2 上的 `Acc-Con` �
 主要项目依据：
 
 - `docs/research-handoff-2026-08-26.zh-CN.md`
-- `docs/table-extraction-research-execution-plan.md`
-- `docs/reports/cross-page-table-core-findings.zh-CN.md`
-- `docs/reports/cross-page-table-sota.zh-CN.md`
-- `docs/reports/novelty-gate.zh-CN.md`
+- `docs/2026-09-20-table-extraction-research-execution-plan.md`
+- `docs/reports/2026-08-02-cross-page-table-core-findings.zh-CN.md`
+- `docs/reports/2026-08-02-cross-page-table-sota.zh-CN.md`
+- `docs/reports/2026-07-24-novelty-gate.zh-CN.md`

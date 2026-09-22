@@ -10,13 +10,15 @@
 
 本项目面向完整文档中的跨页表格恢复，最终目标不是单纯识别一张裁剪表格，而是从多页文档中定位属于同一逻辑表格的页面片段，恢复跨页列对应、重复表头、拆分行或拆分单元格，并输出结构和内容一致的完整逻辑表格。
 
-当前工作主要完成了数据、评测协议和基础模型证据链的建立。项目已固定 PubTables-v2 revision `aa575e798cb00a296925e2086addb3e3fd9a1903`，并完成 TATR-v1.1-Pub 在 `Cropped Tables/val` 全部 13,384 张长表和宽表上的正式评测。该模型取得 `GriTS-Top=0.7429`、`GriTS-Con=0.7168`，但严格完全匹配指标只有 `Acc-Top=0.0164`、`Acc-Con=0.0069`。这说明模型能够恢复较多局部结构和内容，但距离整张表格完全正确仍有很大差距。
+当前工作主要完成了数据、评测协议和基础模型证据链的建立。项目已固定 [PubTables-v2](https://arxiv.org/abs/2512.10888) revision `aa575e798cb00a296925e2086addb3e3fd9a1903`，并完成 [TATR-v1.1-Pub / PubTables-1M](https://arxiv.org/abs/2110.00061) 在 `Cropped Tables/val` 全部 13,384 张长表和宽表上的正式评测。评测审计发现，旧代码将表头序列化为缺少 `<tr>` 的非法层级，导致评分器错误解释网格。项目从保存的原始 cell 输出重建规范 HTML 后，正式结果为 `GriTS-Top=0.8848`、`GriTS-Con=0.8704`、`Acc-Top=0.3897`、`Acc-Con=0.3827`。旧 `Acc-Con=0.0069` 保留作实现缺陷审计，不再作为模型能力结论。
 
-接管项目之前还完成过一次 dots.ocr 的 Full Documents validation 运行，覆盖 935 个文档中的 3,522 个真值表格页，得到 `GriTS-Con=0.6216`、`Acc-Con=0.1380`。重新审计发现，该运行恰好只包含真值表格所在页，未覆盖 validation 的全部 13,871 页，并且没有执行跨页合并。因此这组结果只能作为“真值表格页筛选、未合并”的历史基线，不能表述为严格的 Full Documents 端到端结果。
+接管项目之前还完成过一次 [dots.ocr](https://arxiv.org/abs/2512.02498) 的 Full Documents validation 运行，覆盖 935 个文档中的 3,522 个真值表格页，得到 `GriTS-Con=0.6216`、`Acc-Con=0.1380`。重新审计发现，该运行恰好只包含真值表格所在页，未覆盖 validation 的全部 13,871 页，并且没有执行跨页合并。因此这组结果只能作为“真值表格页筛选、未合并”的历史基线，不能表述为严格的 Full Documents 端到端结果。
 
 与课题最相关的 TATR-v1.2/POTATR 结果已经在论文中报告，但截至 2026-09-22，没有核验到官方发布的对应 checkpoint 和完整复现制品。PubTables-v2 与 POTATR 论文目前仍表述代码和模型将发布；Microsoft 官方 TATR 仓库列出的公开预训练权重仍是 TATR-v1.0/v1.1 系列。因此本阶段先使用公开可获得的 TATR-v1.1-Pub 和 dots.ocr 建立可复现下界，并把论文结果作为外部参照，而不把尚未复现的数字写成项目结果。
 
-当前最值得讨论的不是继续无差别增加 OCR 模型，而是研究页面片段之间的显式结构关系：列对应、重复表头、跨页拆分行/单元格和约束重建。希望与导师重点讨论三项决策：是否将研究主线正式收敛到跨页结构对齐；是否投入多卡资源补齐耗时较长的 dots.ocr 全量基线；以及对尚未开放权重的 TATR-v1.2/POTATR，是等待官方发布还是自行训练近似基线。
+补充调研发现，2026年新发布的 [MinerU-Popo](https://arxiv.org/abs/2605.24973) 已开放代码和模型，并直接研究表格截断恢复。其 `92.7%` 是分页边界处的局部 merge-method prediction accuracy，不是完整逻辑表格的 `Acc-Con`。这项工作一方面应成为下一项优先审计的后处理基线，另一方面也说明本项目不能只把“判断续接”或“处理拆分单元格”作为创新点。
+
+当前最值得讨论的不是继续无差别增加 OCR 模型，而是研究页面片段之间的多种显式结构关系和全局一致性：列对应、重复表头、跨页拆分行/单元格、全局逻辑表归属和约束重建。希望与导师重点讨论四项决策：是否将研究主线正式收敛到多关系跨页结构对齐；是否投入多卡资源补齐耗时较长的 dots.ocr 全量基线；对尚未开放权重的 TATR-v1.2/POTATR 是等待官方发布还是自行训练近似基线；以及是否优先把 MinerU-Popo 接入相同的 PubTables-v2 评测协议。
 
 ## 2. 研究问题与任务边界
 
@@ -75,7 +77,7 @@ PubTables-v2 包含三个互补的任务设置：
 | Acc-Top | 拓扑严格完全匹配 | 任一关键结构错误都可能使该表不计为完全正确 |
 | Acc-Con | 结构和内容严格完全匹配 | 最严格，文本或结构任一错误都可能导致失败 |
 
-因此，`GriTS-Con=0.7168` 不能解释为 71.68% 的表格完全正确；严格内容完全匹配应查看 `Acc-Con`。
+因此，`GriTS-Con=0.8704` 不能解释为 87.04% 的表格完全正确；严格内容完全匹配应查看 `Acc-Con=0.3827`。
 
 ## 4. 已完成工作
 
@@ -88,15 +90,16 @@ PubTables-v2 包含三个互补的任务设置：
 3. TATR 与 dots.ocr 的固定输入清单、可恢复预测 JSONL、离线评分和覆盖检查；
 4. missing、extra、duplicate、推理异常和非法 HTML 的显式统计；
 5. TATR、dots.ocr Cropped 和 dots.ocr Full Documents 三条 smoke 流程；
-6. TATR Cropped Tables validation 全量推理和两次离线复评；
-7. 接管前 dots.ocr Full Documents 历史结果的协议审计。
+6. TATR Cropped Tables validation 全量推理、HTML 序列化缺陷定位、预测重建和正式重新评分；
+7. 修正评分的固定24样本验收、全量覆盖门禁、校验和与运行元数据归档；
+8. 接管前 dots.ocr Full Documents 历史结果的协议审计。
 
 ### 4.2 当前状态总表
 
 | 实验 | 状态 | 覆盖 | 输入赛道 | 是否可作为正式全量结果 |
 | --- | --- | ---: | --- | --- |
 | TATR-v1.1-Pub / Cropped smoke | 已完成 | 4/4 | PDF-text-assisted | 否，仅流程验证 |
-| TATR-v1.1-Pub / Cropped full validation | 已完成 | 13,384/13,384 | PDF-text-assisted | 是，但需同时报告65个失败 |
+| TATR-v1.1-Pub / Cropped full validation | 已完成并经序列化修复重新评分 | 13,384/13,384 | PDF-text-assisted | 是；`Acc-Con=0.3827`，并需同时报告65个失败 |
 | dots.ocr / Cropped smoke | 已完成 | 4/4 | image-only | 否，仅困难样本 smoke |
 | dots.ocr / Cropped full validation | 暂缓 | 0/13,384 | image-only | 否 |
 | dots.ocr / Full Documents smoke | 已完成 | 1文档、3/3页 | image-only | 否，仅流程验证 |
@@ -116,41 +119,39 @@ PubTables-v2 包含三个互补的任务设置：
 - 实际预测记录：13,384
 - 覆盖检查：missing=0、extra=0、duplicate=0
 - 推理 run ID：`20260921T082639Z-tatr-cropped-val-full`
-- 评分 run ID：`20260921T163325Z-tatr-cropped-val-offline-score-bg`
+- 原始评分 run ID：`20260921T163325Z-tatr-cropped-val-offline-score-bg`（受序列化缺陷影响，已失效）
+- 修正评分 run ID：`20260922T095039Z-tatr-cropped-val-rebuilt-score`
 
 ### 5.2 正式结果
 
 | 指标 | 项目实测结果 |
 | --- | ---: |
-| GriTS-Top | 0.7429088739 |
-| GriTS-Con | 0.7167619958 |
-| Acc-Top | 0.0163628213 |
-| Acc-Con | 0.0068738793 |
-| Topology precision | 0.6422517386 |
-| Topology recall | 0.8809809275 |
-| Content precision | 0.6196475155 |
-| Content recall | 0.8499745662 |
+| GriTS-Top | 0.8848063827 |
+| GriTS-Con | 0.8703867933 |
+| Acc-Top | 0.3897190675 |
+| Acc-Con | 0.3826957561 |
+| Topology precision | 0.8406092444 |
+| Topology recall | 0.9339089889 |
+| Content precision | 0.8269099308 |
+| Content recall | 0.9186891800 |
 | 推理失败 | 65/13,384，约0.49% |
 | 生成预测表 | 13,317 |
 | 非法 table HTML | 0 |
 
-两次离线评分的 metrics SHA-256 均为：
+修正 metrics SHA-256 为 `b089d5fd59f4445d41b2348cfccdd5510826a6c73df1e31e8e47c873338b58d0`，重建预测 SHA-256 为 `f762d8017637f4f77e43a7f8f54edeb07630df7186fc1e6513e13577a9e83f2f`，failures SHA-256 为 `8db22441ba3f0d7d088931ceb3270b010c3a2e160ee93b330c12bd07b05f15a7`。全部文件通过 `sha256sum -c`，运行退出码为 0。
 
-`95a4388b5387cb63e09538716447ec2e51c9f168314506fd4735556086bbffb8`
+### 5.3 旧结果为何失效
 
-两次 failures 文件 SHA-256 均为：
+旧 `cells_to_html()` 输出 `<thead><th>...</th></thead>`，缺少 `<tr>`。GriTS HTML 解析器只在 `<tr>` 时推进网格行，导致本来正确的表头 cell 被放到错误行号。24 张固定分层样本中，修复前 `0/24` exact，修复后 `9/24` exact；随后全量 `Acc-Con` 从 `0.0069` 修正为 `0.3827`。评分公式和官方 GriTS 实现没有改变，改变的是送入评分器的 HTML 是否正确表达模型保存的 cell。
 
-`8db22441ba3f0d7d088931ceb3270b010c3a2e160ee93b330c12bd07b05f15a7`
-
-这说明保存的预测可以稳定复评，评分结果没有因重复运行而漂移。
-
-### 5.3 结果如何解释
+### 5.4 修正结果如何解释
 
 可以得出三个层次的结论：
 
-1. **已观察事实**：GriTS 约为0.72–0.74，说明大量局部行列、单元格和内容仍与真值相似；但 Acc 只有0.69%–1.64%，说明整表严格完全正确非常困难。
-2. **已观察事实**：precision 明显低于 recall。模型倾向于覆盖大部分真实结构，但同时产生更多额外或不准确结构。
-3. **待误差分析验证的推断**：额外行列、复杂表头、合并单元格、结构碎片化和 PDF text 归属可能是 precision 与 exact match 较低的重要原因。目前不能在没有样本分类证据的情况下，把其中某一项宣称为唯一主因。
+1. **已观察事实**：约38.27%的表达到结构和内容严格完全匹配；GriTS-Con为0.8704，说明非 exact 样本仍有大量局部结构和内容正确。
+2. **已观察事实**：`Acc-Top=0.3897` 与 `Acc-Con=0.3827` 只差约0.70个百分点。在 PDF Direct Text 设置下，额外的内容错误不是 strict failure 的首要来源。
+3. **已观察事实**：precision 仍低于 recall。模型倾向于覆盖大部分真实结构，但同时产生更多额外或不准确结构。
+4. **待误差分析验证的推断**：额外行列、列过分割、复杂表头和合并单元格更可能是主要剩余瓶颈；目前不能把任何一种错误宣称为全量数据的唯一主因。
 
 ## 6. 为什么 TATR-v1.1-Pub 表现不理想
 
@@ -218,9 +219,9 @@ TATR-v1.1-Pub 的输入是单张裁剪表格。它不判断两个页面片段是
 
 | 模型 | 相关性 | 截至2026-09-22的状态 | 当前处理 |
 | --- | --- | --- | --- |
-| TATR-v1.2-Pub | 针对 PubTables-v2 长表/宽表继续训练，是 Cropped Tables 最直接比较对象 | 没有在官方 TATR 权重列表中核验到对应 checkpoint | 引用论文报告值，不声称已复现；等待发布或自行继续训练 |
-| POTATR | 29M参数页面级 image-to-graph 模型，是 Single Pages 和文档级组合流水线的重要基线 | 论文仍写明 code and models will be released | 引用论文结果作为外部比较，不把近似实现冒充官方模型 |
-| PubTables-v2 continuation ViT | 与跨页续接直接相关 | 没有核验到可直接使用的官方 checkpoint 与完整复现包 | 可使用公开页面对标签自行训练，但必须标注为项目复现版本 |
+| [TATR-v1.2-Pub（PubTables-v2 论文）](https://arxiv.org/abs/2512.10888) | 针对 PubTables-v2 长表/宽表继续训练，是 Cropped Tables 最直接比较对象 | 没有在官方 TATR 权重列表中核验到对应 checkpoint | 引用论文报告值，不声称已复现；等待发布或自行继续训练 |
+| [POTATR](https://arxiv.org/abs/2606.09788) | 29M参数页面级 image-to-graph 模型，是 Single Pages 和文档级组合流水线的重要基线 | 论文仍写明 code and models will be released | 引用论文结果作为外部比较，不把近似实现冒充官方模型 |
+| [PubTables-v2 continuation ViT](https://arxiv.org/abs/2512.10888) | 与跨页续接直接相关 | 没有核验到可直接使用的官方 checkpoint 与完整复现包 | 可使用公开页面对标签自行训练，但必须标注为项目复现版本 |
 
 Microsoft [Table Transformer 官方仓库](https://github.com/microsoft/table-transformer)目前列出的预训练权重为 TATR-v1.0 和 TATR-v1.1 系列，并说明公开预训练权重面向 PubTables-1M。PubTables-v2 [官方论文](https://arxiv.org/abs/2512.10888)和 [POTATR 论文](https://arxiv.org/abs/2606.09788)截至核验日期仍使用将来时描述代码与模型发布。
 
@@ -241,26 +242,79 @@ Claude、Gemini、GPT 等不是开放权重模型，但并非完全不可测试�
 
 ### 8.3 其他已有开放权重的 VLM
 
-Qwen、GraniteDocling、SmolDocling、DeepSeek-OCR 等部分模型已有公开权重。没有全部测试它们，不是因为拿不到参数，而是因为当前阶段先选择：
+[Qwen2.5-VL](https://arxiv.org/abs/2502.13923)、GraniteDocling（当前仅核验到[官方模型卡](https://huggingface.co/ibm-granite/granite-docling-258M)）、[SmolDocling](https://arxiv.org/abs/2503.11576)、[DeepSeek-OCR](https://arxiv.org/abs/2510.18234) 等部分模型已有公开权重。没有全部测试它们，不是因为拿不到参数，而是因为当前阶段先选择：
 
 - 一个经典、轻量、结构显式的检测式模型 TATR；
 - 一个开源、端到端生成 HTML 的文档解析模型 dots.ocr。
 
 这两类模型已经代表两种主要范式。后续是否扩展更多 VLM，应取决于它们能否回答新的科学问题，而不是单纯增加模型数量。
 
-## 9. 与公开论文结果的关系
+### 8.4 新近开放的跨页后处理模型：MinerU-Popo
+
+[MinerU-Popo 论文](https://arxiv.org/abs/2605.24973)是本轮补充检索中发现的高度相关工作。其 arXiv v1 发布于 2026-05-24，v2 更新于 2026-07-30；[官方 GitHub 仓库](https://github.com/opendatalab/MinerU-Popo)和模型下载入口已经公开。因此，它与 TATR-v1.2/POTATR 的可获得性状态不同，不能再统一表述为“最相关模型都没有开放权重”。
+
+MinerU-Popo 不是从页面图像独立完成所有表格抽取的页面解析器，而是接收现有 OCR/文档解析结果并进行结构后处理。论文涵盖文本截断恢复、表格截断恢复、标题层级重建和图文关联四个任务。与本项目直接相关的表格任务先判断相邻页表格是否连续，再逐列判断分页边界单元格的内容应保持分开还是合并。论文报告的 `92.7%` 是 merge-method prediction accuracy，即局部边界合并决策准确率；`TEDS=90.6` 对应标题层级重建，不是表格恢复结果。二者均不能直接与 PubTables-v2 Full Documents 的整表 `Acc-Con` 比较。
+
+该模型已经具备测试条件，但当前还没有纳入项目实测，原因是它是在本轮进展文档形成后才补充识别出的新近工作。下一步应先审计其输入/输出格式、模型许可和评测脚本，再判断能否在固定 PubTables-v2 页面解析输入上进行公平复测。
+
+## 9. 相关研究、公开结果及与本项目的关系
 
 以下数字均为论文报告值，不是本项目复现值：
 
 | 方法 | 任务与输入 | 论文报告的代表性结果 | 用途 |
 | --- | --- | ---: | --- |
-| PubTables-v2定向 TATR + Direct Text | Cropped Tables | `Acc-Con=0.6831` | 说明定向训练与高质量文字输入可以显著提高严格正确率 |
-| PubTables-v2定向 TATR + docTR OCR | Cropped Tables | `Acc-Con=0.0191` | 说明 OCR/文字质量会显著限制内容完全匹配 |
-| POTATR + Direct Text | Single Pages | `GriTS-Con=0.964`，`Acc-Con=0.6454` | 强页面级抽取外部参照 |
-| POTATR + continuation + merging | Full Documents | `GriTS-Con=0.8269`，`Acc-Con=0.2176` | 显式页面抽取加外部合并的重要参照 |
-| Claude Opus 4.6 | Full Documents | `Acc-Con=0.2452` | 商业全文档 MLLM 外部上界之一 |
+| [PubTables-v2定向 TATR + Direct Text](https://arxiv.org/abs/2512.10888) | Cropped Tables | `Acc-Con=0.6831` | 说明定向训练与高质量文字输入可以显著提高严格正确率 |
+| [PubTables-v2定向 TATR + docTR OCR](https://arxiv.org/abs/2512.10888) | Cropped Tables | `Acc-Con=0.0191` | 说明 OCR/文字质量会显著限制内容完全匹配 |
+| [POTATR + Direct Text](https://arxiv.org/abs/2606.09788) | Single Pages | `GriTS-Con=0.964`，`Acc-Con=0.6454` | 强页面级抽取外部参照 |
+| [POTATR + continuation + merging](https://arxiv.org/abs/2512.10888) | Full Documents | `GriTS-Con=0.8269`、`Acc-Con=0.2176` | 显式页面抽取加外部合并的重要参照；模型方法见 [POTATR 论文](https://arxiv.org/abs/2606.09788) |
+| [Claude Opus 4.6（PubTables-v2 评测）](https://arxiv.org/abs/2512.10888) | Full Documents | `Acc-Con=0.2452` | 商业全文档 MLLM 外部上界之一 |
 
 这些结果不能与项目 TATR-v1.1 分数直接排名，因为模型版本、数据 context 和文字输入条件不同。它们的作用是说明研究难度、可达到的性能区间和可复现基线缺口。
+
+其中最接近的外部参照是同属 Cropped Tables、同为 Direct Text 的 PubTables-v2 定向 TATR。项目公开 TATR-v1.1 的修正 `Acc-Con=0.3827`，论文定向版本报告 `0.6831`，相差约30.04个百分点。两者不能当作同一模型的复现实验，但该差距支持一个可讨论假设：针对长表、宽表和复杂结构的定向训练或结构校正仍有明显空间。
+
+### 9.1 直接相关的跨页表格研究矩阵
+
+下表区分“续接判断”“局部边界合并”“软相似度”和“整表严格恢复”。研究名称优先直接链接论文原文；没有核验到独立论文的项目链接其官方仓库并明确标注。不同数据集、输入条件和指标下的数字只用于理解研究位置，不能按数值大小直接排名。
+
+| 研究 | 任务和数据 | 论文报告的代表性结果 | 与本研究的主要区别 | 值得借鉴的内容 |
+| --- | --- | --- | --- | --- |
+| [BERT-Based Semantic Matching（2024）](https://doi.org/10.1007/978-981-99-7545-7_41) | 私有 PDF 上的跨页表识别与拼接 | 当前项目资料未核验到可与公开基准横比的完整结果 | 重点是利用表头/语义判断是否续接，没有公开的整表严格重建评测 | 把版面相似度与语义相似度结合，而不是只依赖列数 |
+| [OCRFlux 官方仓库](https://github.com/chatdoc-com/OCRFlux)（截至核验日期未发现独立论文） | `OCRFlux-bench-cross` 的真实相邻页样本，以及由 PubTabNet 构造的拆分表对 | 合并检测 Accuracy/F1 均约 `0.986`；构造表对的合并结果 `TEDS=0.950` | 检测指标与 TEDS 都不是 PubTables-v2 Full Documents 的 `Acc-Con`；构造拆分页与自然跨页文档存在分布差异 | “先定位需要合并的元素，再重建完整表”的分阶段设计、合并索引表示和合成训练样本生成方式 |
+| [PubTables-v2 continuation + simple merging（2025/2026）](https://arxiv.org/abs/2512.10888) | 公开科学论文完整文档；相邻页续表判断和逐页结果纵向拼接 | ViT-B/16 continuation `F1=0.991`；[dots.ocr](https://arxiv.org/abs/2512.02498) 合并后 `GriTS-Con 0.5768→0.6844`，但 `Acc-Con 0.1180→0.1180` | 已证明“是否续接”接近饱和，但简单纵向拼接仍不能提高严格整表正确率 | 官方页面对标签、统一 Full Documents 协议，以及 oracle/predicted continuation 对照 |
+| [POTATR + merging（2026）](https://arxiv.org/abs/2606.09788) | [PubTables-v2](https://arxiv.org/abs/2512.10888) 页面抽取加 continuation 和纵向合并 | Full Documents `GriTS-Con=0.8269`、`Acc-Con=0.2176` | 页面抽取能力强，但跨页合并仍以外部 continuation 和简单拼接为主；官方 checkpoint 尚未核验到 | 轻量 image-to-graph 页面表示，以及把页面抽取和文档级合并组合成可评测流水线 |
+| [LingDT-VL-OCR（2026）](https://arxiv.org/abs/2603.11044) | 自建 FinDocBench，其中 472 张金融跨页表 | 跨页子集平均 `TEDS=0.8915` | 领域、数据和指标均不同；只报告软相似度，没有整表 exact match 和同集公开对照 | 根据表头、列结构和内容动态选择合并策略；说明领域先验对跨页恢复有价值 |
+| [VCCT（2026，未同行评审预印本）](https://doi.org/10.2139/ssrn.6811737) | 私有电力设备故障报告，约 300 张跨页表 | 自定义 Cross-page Structural Integrity `82.0%` | 私有小数据、自定义结构指标，不检查全部单元格内容，不能与 `Acc-Con` 横比 | 表头、边框和前序页上下文共同约束续接与结构完整性 |
+| [MinerU-Popo（2026）](https://arxiv.org/abs/2605.24973) | 通用文档解析后处理；PostDocBench 每个子任务 165 个测试实例，表格子任务含约 1,317 个 cell-level merge units | table truncation merge-method accuracy `92.7%` | 评价单位是局部边界合并决策，不覆盖上游检测/OCR和最终整表 exact match；尚未报告 PubTables-v2 Full Documents `Acc-Con` | 与上游 OCR 解耦的通用后处理接口、先续接再逐列判断的分解方式、合成截断数据和轻量 VLM 后处理 |
+| [MonkeyOCR v1.5](https://arxiv.org/abs/2511.10390)、[PaddleOCR-VL-1.5](https://arxiv.org/abs/2601.21957)、[MinerU](https://arxiv.org/abs/2409.18839) | 通用/复杂/长文档解析 | 展示跨页能力或案例，但没有统一的跨页严格数值 | 更偏通用文档解析系统，尚不足以作为同协议跨页恢复定量基线 | 工程化页面解析接口、长文档上下文组织和可部署 pipeline |
+
+### 9.2 MinerU-Popo 的指标与 `Acc-Con` 不同
+
+MinerU-Popo 的 `92.7%` 衡量分页边界处某个合并动作是否预测正确，单位接近 cell-level merge unit；本项目采用的 `Acc-Con` 衡量最终整张逻辑表格的结构和内容是否全部精确匹配。前者是局部模块诊断指标，后者是累积页面检测、OCR、结构解析、续接和合并误差后的端到端严格指标。
+
+因此，即使每个局部决策都有较高准确率，一张长表只要在任意列对应、表头、拆分行、单元格文字或 span 上出现一次关键错误，整表 `Acc-Con` 仍可能为零。论文报告的 `92.7%` 不能写成“92.7%的跨页表完整恢复成功”，也不能与本项目当前 Cropped Tables `Acc-Con=0.3827` 或 PubTables-v2 Full Documents 的 `Acc-Con` 直接作数值高低比较。
+
+### 9.3 本项目与现有工作的差异
+
+现有工作大致形成三类路线：续接二分类、启发式/生成式纵向合并、通用后处理模型。它们已经覆盖了“是否续接”和部分“分页边界单元格是否合并”，因此本项目不能再把“处理拆分单元格”本身作为充分的新颖性主张。
+
+本项目计划形成的差异是：
+
+1. **关系范围更完整**：同时显式建模 `continuation-of`、列对应、重复表头、拆分行、拆分单元格和全局逻辑表归属，而不是只输出续接标签或逐列二元合并动作；
+2. **局部预测与全局约束结合**：先提出候选跨页关系，再通过列数、行序、span、表头层级和内容一致性进行全局约束解码，避免相互独立的局部决策产生不一致表格；
+3. **严格公开基准验证**：在固定 revision 的 PubTables-v2 Full Documents 全部页面上报告 `Acc-Con/Acc-Top`，同时报告 GriTS、TEDS 和局部关系指标，避免只用软相似度证明整表恢复；
+4. **隔离误差来源**：分别使用 oracle 页面片段/continuation 与模型预测输入，量化页面抽取、续接判断、结构对齐和最终重建各自造成的损失；
+5. **保留可追溯结构证据**：输出页面片段、单元格和最终逻辑表之间的对应关系，使每次删除重复表头、合并拆分行或调整列对应都可以检查，而不是只生成无法追踪来源的 HTML；
+6. **区分输入条件**：将 PDF-text-assisted 与 image-only 分开报告，避免把原生 PDF 文字优势误认为跨页算法优势。
+
+### 9.4 从现有研究中直接借鉴的设计
+
+- 借鉴 OCRFlux 和 MinerU-Popo 的模块化思想，把跨页恢复设计为可接在不同页面解析器之后的后处理器；
+- 借鉴 PubTables-v2 的页面对标签与统一 Full Documents 评分，建立 continuation、simple merging 和 POTATR-style pipeline 基线；
+- 借鉴 MinerU-Popo 的“表级续接判断 + 边界单元格决策”分解，并把其局部准确率作为诊断指标，而不是最终结论；
+- 借鉴 OCRFlux 的合成拆分样本和 MinerU-Popo 的截断数据生成思路，但必须用自然跨页 validation 分布验证，且不得使用 test 调规则；
+- 借鉴 LingDT-VL-OCR 和 VCCT 的表头、列结构、边框和上下文特征，同时避免把领域启发式当作跨领域普适结论；
+- 在上述局部方法之上增加全局关系图、约束解码、来源追踪和严格 exact-match 评测，形成项目自己的核心贡献。
 
 ## 10. 当前结果暴露出的研究机会
 
@@ -272,7 +326,11 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 公开结果和项目实测都显示，GriTS/TEDS 可以在合并后提高，但 `Acc-Con` 仍然较低。仅仅纵向连接两个 HTML 片段，无法解决列错位、重复表头和拆分行。
 
-### 10.3 论文贡献应聚焦显式跨页结构对齐
+### 10.3 修正基线把瓶颈进一步指向结构
+
+项目修正结果中，`Acc-Top=0.3897` 与 `Acc-Con=0.3827` 只差约0.7个百分点，而 topology precision `0.8406` 低于 recall `0.9339`。这不是最终错误归因，但已足以支持下一步优先验证额外行列、列过分割、复杂表头和span约束，而不是把主要资源继续投入PDF文字识别。应通过分层抽样和oracle消融确认各结构因素的贡献。
+
+### 10.4 论文贡献应聚焦显式跨页结构对齐
 
 一个更有辨识度的研究方向是：将页面片段表示为带空间和文本属性的结构图，显式预测以下关系：
 
@@ -285,6 +343,8 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 随后通过结构约束解码，保证列数、行顺序、span和表头层级尽可能一致。该方向与现有简单纵向拼接有清晰差异，也直接回应 strict exact match 较低的问题。
 
+需要注意，MinerU-Popo 已经显式判断表格续接和分页边界单元格合并，因此项目的新颖性不能只表述为“增加 split-cell 关系”。更稳妥的贡献边界应是：在公开 Full Documents 基准上，把多种类型化跨页关系、全局一致性约束和可追溯重建统一起来，并证明它们相对于 simple merging 和局部 merge predictor 对严格整表指标的增益。
+
 ## 11. 下一阶段工作方案
 
 ### 阶段A：误差分析与证据补全
@@ -293,11 +353,11 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 工作内容：
 
-1. 对65个推理失败逐条分类；
-2. 从正确和错误预测中按长表、宽表、spanning cell、复杂表头分层抽样；
-3. 统计额外行列、缺失行列、span错误、表头错误和文字归属错误；
-4. 补齐 TATR 全量运行的命令、代码 commit 和追溯 manifest；
-5. 形成可用于论文错误分析图表的样本清单。
+1. 保留65个推理失败清单，但不把它们作为当前首要瓶颈；
+2. 从修正后的正确和错误预测中抽取60–80张，按长表、宽表、长且宽、spanning cell、复杂表头分层；
+3. 统计额外行列、缺失行列、列过分割、span错误、表头错误和文字归属错误；
+4. 做 oracle 行数、列数、表头、span 和文字归属消融；
+5. 形成可用于论文错误分析图表的样本清单，并优先验证约束化结构修复。
 
 验收条件：每个主要失败结论都有样本数和证据路径，不再使用未经验证的单一原因解释。
 
@@ -311,7 +371,8 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 2. 按 document ID 进行划分和泄漏检查；
 3. 建立简单 continuation 分类器或可解释启发式基线；
 4. 实现“预测续接且列数一致则纵向拼接”的直接合并基线；
-5. 分别评估 oracle continuation 和 predicted continuation。
+5. 审计 MinerU-Popo 的输入输出接口，并在相同页面解析输入可适配时增加其后处理基线；
+6. 分别评估 oracle continuation 和 predicted continuation。
 
 验收条件：区分 continuation 错误、页面抽取错误和合并错误，不把三者混成一个总分。
 
@@ -325,7 +386,8 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 2. 从最终逻辑表和页面片段中派生列对应、重复表头和拆分行弱标签；
 3. 对派生标签记录置信度并人工审计；
 4. 训练或设计类型化关系预测模块；
-5. 使用结构约束完成最终逻辑表解码。
+5. 将 MinerU-Popo 式局部边界决策作为候选关系信号之一，而不是直接等同于最终表格；
+6. 使用结构约束完成最终逻辑表解码，并保留页面到逻辑表的 provenance。
 
 验收条件：相对于直接纵向拼接，在相同页面抽取输入下提高文档级 `Acc-Con`，并通过消融说明各关系类型的贡献。
 
@@ -337,7 +399,7 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 1. 分开报告 `PDF-text-assisted` 与 `image-only`；
 2. 在 Full Documents 全部页面上评测，不使用真值筛页；
-3. 报告 GriTS、TEDS、Acc、continuation 指标和跨页子集结果；
+3. 报告 GriTS、TEDS、Acc、continuation、column alignment 和 boundary-cell merge 指标及跨页子集结果；
 4. 进行 oracle/predicted、关系类型、约束解码和文字来源消融；
 5. validation 完成方案选择后，仅在最终阶段使用 test。
 
@@ -361,16 +423,22 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 建议：持续监控官方发布，同时准备可复现的项目训练方案。若核心方法需要稳定页面对象输入且官方制品仍未发布，再自行训练，并明确命名为项目复现版本。
 
+### 决策四：MinerU-Popo 的基线优先级
+
+是否把已经开放代码和模型的 MinerU-Popo 作为下一项优先接入的跨页后处理基线？
+
+建议：先做小规模接口与许可审计，再用同一页面解析输入验证其局部 merge accuracy 和最终 `Acc-Con`。如果适配成本可控，应优先于继续增加同质化通用 OCR 模型，因为它直接覆盖本项目最相关的跨页边界恢复问题。
+
 ## 13. 当前阶段可向导师陈述的结论
 
 可以陈述：
 
 1. 已建立固定数据版本、完整覆盖检查和可重复离线评分流程；
 2. 已完成 TATR-v1.1-Pub 在 PubTables-v2 Cropped validation 上的全量评测；
-3. 当前结果显示局部软相似度尚可，但整表严格正确率很低；
+3. 修正后 `Acc-Con=0.3827`，说明公开旧模型已能完整恢复一部分困难表格，但剩余失败主要仍与结构有关；
 4. 已发现并纠正接管前 dots.ocr Full Documents 结果的协议边界；
-5. 最相关的新模型论文结果已公开，但官方权重和完整复现制品尚未核验到；
-6. 下一步科学问题应集中于跨页结构对齐和约束重建。
+5. TATR-v1.2/POTATR 的官方权重和完整复现制品尚未核验到，但新近的 MinerU-Popo 已开放代码和模型，需要纳入基线审计；
+6. 现有研究已覆盖 continuation 和局部边界合并，下一步科学问题应进一步集中于多关系结构对齐、全局约束和严格整表重建。
 
 暂时不能陈述：
 
@@ -386,15 +454,15 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 目前我先完成了数据和评测流程的固定。PubTables-v2 使用固定 revision，现阶段只使用 validation，不使用 test 调参。评测中我把 PDF 原生文字辅助和纯图像两种输入条件分开报告，避免不公平比较。
 
-已经完成的主要实验是 TATR-v1.1-Pub 在 Cropped Tables validation 上的全量测试，共13,384张长表和宽表，覆盖完整，没有缺失、额外或重复样本。结果是 GriTS-Top 0.7429、GriTS-Con 0.7168，但严格的 Acc-Top 只有0.0164，Acc-Con只有0.0069。另外有65个推理失败，已经按空预测计入指标。这个结果说明模型能恢复较多局部结构，但很难保证整张长表或宽表完全正确。
+已经完成的主要实验是 TATR-v1.1-Pub 在 Cropped Tables validation 上的全量测试，共13,384张长表和宽表，覆盖完整，没有缺失、额外或重复样本。最初评分时我发现一个重要的实现问题：模型保存的 cell 转成 HTML 时，表头缺少 `<tr>`，导致评分器错误理解行列结构。我没有重新跑模型，而是从原始 cell 输出重建规范 HTML，并用同一官方 GriTS 重新全量评分。修正后的结果是 GriTS-Top 0.8848、GriTS-Con 0.8704、Acc-Top 0.3897、Acc-Con 0.3827。原来的 Acc-Con 0.0069 已标记为失效结果。另有65个推理失败，已经按空预测计入指标。
 
 接管项目之前还运行过 dots.ocr 的 Full Documents validation。原结果覆盖935个文档、3,522页，GriTS-Con是0.6216，Acc-Con是0.1380。我重新核验后发现，这3,522页恰好都是真值表格所在页，没有覆盖全部13,871页，而且旧代码没有做跨页合并。因此我把它重新界定为历史筛页基线，而不是严格全文档结果。新的严格流程已经通过一个完整三页文档的 smoke，但全量单卡预计需要约6.5到14天，所以目前先暂停，想请老师判断是否值得投入多卡补齐。
 
-没有测试TATR-v1.2和POTATR，主要不是忽略相关工作，而是目前没有核验到官方对应checkpoint和完整复现制品。官方论文仍写代码和模型将发布，Microsoft当前公开的主要是TATR-v1.0和v1.1权重。Claude、Gemini等模型属于另一类，它们可以通过商业API测试，但不是开放权重模型，成本和版本复现也是问题。其他开源VLM可以后续扩展，只是当前阶段先选了TATR和dots.ocr代表两种主要范式。
+没有测试TATR-v1.2和POTATR，主要不是忽略相关工作，而是目前没有核验到官方对应checkpoint和完整复现制品。官方论文仍写代码和模型将发布，Microsoft当前公开的主要是TATR-v1.0和v1.1权重。新近发布的MinerU-Popo则不同，它已经公开代码和模型，专门包含表格截断恢复；论文报告的92.7%是局部边界合并决策准确率，不是整表Acc-Con。我计划把它列为下一项优先审计的后处理基线，在同一PubTables-v2输入和指标下复测后再公平比较。
 
-从现有结果看，我认为下一步不应只继续堆更多OCR模型。更关键的问题是跨页片段之间的显式结构关系，包括列对应、重复表头、拆分行和拆分单元格。我计划先做TATR分层误差分析，然后建立continuation加直接纵向拼接的最小基线，再研究类型化关系图和约束重建，并通过oracle continuation和predicted continuation区分各模块误差。
+从修正后的结果看，Acc-Top 0.3897与Acc-Con 0.3827只差约0.7个百分点，说明当前PDF原生文字条件下，首要问题仍然是结构，而不是额外的文字识别；同时precision低于recall，说明需要重点检查额外行列、列过分割、复杂表头和span。我认为下一步不应只继续堆更多OCR模型。OCRFlux、PubTables-v2和MinerU-Popo已经说明，continuation或局部merge decision可以达到很高准确率，但这不等于完整逻辑表格严格正确。更关键的问题是同时处理列对应、重复表头、拆分行、拆分单元格和全局一致性。我计划先对修正结果做分层抽样和oracle结构消融，建立continuation加直接纵向拼接的最小基线，并审计MinerU-Popo；随后研究类型化关系图和约束重建，通过oracle/predicted输入及局部/整表指标区分各模块误差。
 
-这次希望重点请老师讨论三件事：第一，是否同意把研究主线收敛到跨页结构对齐和约束重建；第二，是否现在投入多卡补dots.ocr全量；第三，对尚未开放权重的TATR-v1.2和POTATR，是等待官方发布，还是后续自行训练一个明确标注的复现版本。
+这次希望重点请老师讨论四件事：第一，是否同意把研究主线收敛到多关系跨页结构对齐和约束重建；第二，是否现在投入多卡补dots.ocr全量；第三，对尚未开放权重的TATR-v1.2和POTATR，是等待官方发布，还是后续自行训练一个明确标注的复现版本；第四，是否优先把已经开放的MinerU-Popo接入同一PubTables-v2评测协议。
 
 ## 15. 导师可能追问与建议回答
 
@@ -410,13 +478,13 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 回答：可以尝试，但那将是项目复现版本，而不是官方模型。它需要固定训练配置、数据处理、随机种子和验证流程，投入也明显高于直接加载checkpoint。是否值得做应取决于它是否是跨页方法的必要输入，而不是为了追求模型数量。
 
-### 问题4：为什么 GriTS 有0.7，但 Acc 只有约0.007？
+### 问题4：为什么旧结果从 Acc-Con 0.0069 修正到0.3827？
 
-回答：GriTS是软相似度，局部行列和单元格正确就可以得到部分分数；Acc-Con要求结构和内容整体完全一致。长表和宽表的单元格多，任一列划分、span、表头或文本错误都可能使整表无法获得exact match。
+回答：模型推理本身没有重跑。旧程序把表头写成 `<thead><th>...</th></thead>`，缺少 `<tr>`；评分器因此把表头放到错误网格行，很多正确预测被判错。修复后从保存的 `raw_output.cells` 重建HTML，并复用同一官方评分器。24张固定样本由0张exact恢复到9张，全量 Acc-Con由0.0069修正到0.3827。旧结果保留审计，但不再代表模型能力。
 
 ### 问题5：这是否说明 TATR 完全不能用？
 
-回答：不能这样解释。TATR的recall较高，说明它仍然能恢复大量真实结构，可以作为候选页面解析器和可解释输入。但需要通过误差分析和约束后处理减少额外、错分或碎片化结构，并且必须另加跨页模块。
+回答：不能这样解释。修正后约38.27%的困难裁剪表已经达到结构和内容完全匹配，topology recall约0.934，说明它能恢复大量真实结构，可以作为候选页面解析器和可解释输入。但precision仍低于recall，需要通过误差分析和约束后处理减少额外、错分或碎片化结构，并且必须另加跨页模块。
 
 ### 问题6：65个推理失败会不会使结果失效？
 
@@ -436,7 +504,7 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 ### 问题10：下一步最小可执行实验是什么？
 
-回答：先对TATR错误进行分层分析，同时使用PubTables-v2官方相邻页面对标签建立continuation基线；随后实现直接纵向拼接，并在oracle continuation与predicted continuation两种设置下评测。这样可以最快判断真正瓶颈位于页面抽取、续接还是结构对齐。
+回答：先从修正后的TATR结果中分层抽取60–80张，统计行列、表头、span和文字归属错误，并做oracle行数、列数、表头和span消融；随后使用PubTables-v2官方相邻页面对标签建立continuation与直接纵向拼接基线。这样可以先判断页面结构瓶颈，再区分续接和跨页对齐误差。
 
 ### 问题11：为什么不直接使用真值页面片段做跨页研究？
 
@@ -446,23 +514,29 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 回答：所有训练和规则开发按文档划分，页面不能跨split；validation用于选模和消融；test只在方案冻结后进行最终评估。派生标签也必须记录来源、置信度和审计状态。
 
+### 问题13：MinerU-Popo 已经做到92.7%，我们的研究还有什么空间？
+
+回答：92.7%是分页边界处局部 merge method 的决策准确率，不是最终整张跨页表格的严格恢复率。它不直接覆盖页面检测、OCR、列对应、重复表头、全局表归属及整表 exact match。本项目需要在相同 PubTables-v2 Full Documents 协议下复测，并研究多关系联合建模、全局约束和来源可追溯重建。MinerU-Popo既是重要基线，也提示我们不能把“处理拆分单元格”单独当作创新点。
+
 ## 16. 证据与复现路径
 
 ### 16.1 项目进度与实验记录
 
-- `docs/research-progress.zh-CN.md`
+- `docs/2026-09-22-research-progress.zh-CN.md`
 - `docs/experiments/2026-09-21-two-baseline-smoke.zh-CN.md`
 - `docs/experiments/2026-09-22-historical-dots-full-documents-audit.zh-CN.md`
+- `docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`
 - `docs/superpowers/specs/2026-09-21-two-baseline-complete-validation-design.md`
 
 ### 16.2 TATR 正式结果
 
 - predictions：`outputs/baselines/tatr-v1.1-pub/20260921T082639Z-tatr-cropped-val-full/predictions.jsonl`
 - inference log：`logs/baselines/tatr-v1.1-pub/20260921T082639Z-tatr-cropped-val-full/inference.log`
-- metrics：`outputs/baselines/tatr-v1.1-pub/20260921T163325Z-tatr-cropped-val-offline-score-bg/metrics-1.json`
-- repeated metrics：同目录 `metrics-2.json`
-- failures：同目录 `failures-1.jsonl` 和 `failures-2.jsonl`
-- checksums：同目录 `checksums.sha256`
+- rebuilt predictions：`outputs/baselines/tatr-v1.1-pub/20260922T095039Z-tatr-cropped-val-rebuilt-score/predictions.jsonl`
+- metrics：同目录 `metrics.json`
+- failures：同目录 `failures.jsonl`
+- checksums / metadata：同目录 `checksums.sha256`、`run-metadata.json`、`git-commit.txt` 和 `COMPLETE`
+- logs：`logs/baselines/tatr-v1.1-pub/20260922T095039Z-tatr-cropped-val-rebuilt-score/`
 
 ### 16.3 dots.ocr 历史结果
 
@@ -475,8 +549,22 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 
 1. PubTables-v2 paper: [arXiv:2512.10888](https://arxiv.org/abs/2512.10888)
 2. PubTables-v2 dataset: [kensho/PubTables-v2](https://huggingface.co/datasets/kensho/PubTables-v2)
-3. Table Transformer official repository: [microsoft/table-transformer](https://github.com/microsoft/table-transformer)
-4. POTATR paper: [arXiv:2606.09788](https://arxiv.org/abs/2606.09788)
+3. PubTables-1M / Table Transformer paper: [arXiv:2110.00061](https://arxiv.org/abs/2110.00061)
+4. Table Transformer official repository: [microsoft/table-transformer](https://github.com/microsoft/table-transformer)
+5. POTATR paper: [arXiv:2606.09788](https://arxiv.org/abs/2606.09788)
+6. dots.ocr paper: [arXiv:2512.02498](https://arxiv.org/abs/2512.02498)
+7. MinerU-Popo paper: [arXiv:2605.24973](https://arxiv.org/abs/2605.24973)
+8. MinerU-Popo official repository: [opendatalab/MinerU-Popo](https://github.com/opendatalab/MinerU-Popo)
+9. OCRFlux official repository（未核验到独立论文）: [chatdoc-com/OCRFlux](https://github.com/chatdoc-com/OCRFlux)
+10. LingDT-VL-OCR paper: [arXiv:2603.11044](https://arxiv.org/abs/2603.11044)
+11. MonkeyOCR v1.5 paper: [arXiv:2511.10390](https://arxiv.org/abs/2511.10390)
+12. PaddleOCR-VL-1.5 paper: [arXiv:2601.21957](https://arxiv.org/abs/2601.21957)
+13. MinerU paper: [arXiv:2409.18839](https://arxiv.org/abs/2409.18839)
+14. SmolDocling paper: [arXiv:2503.11576](https://arxiv.org/abs/2503.11576)
+15. Qwen2.5-VL technical report: [arXiv:2502.13923](https://arxiv.org/abs/2502.13923)
+16. DeepSeek-OCR paper: [arXiv:2510.18234](https://arxiv.org/abs/2510.18234)
+17. BERT-Based Semantic Matching for Cross-Page Table Recognition: [DOI:10.1007/978-981-99-7545-7_41](https://doi.org/10.1007/978-981-99-7545-7_41)
+18. VCCT preprint: [DOI:10.2139/ssrn.6811737](https://doi.org/10.2139/ssrn.6811737)
 
 ## 17. 证据标签说明
 
@@ -485,4 +573,4 @@ PubTables-v2 论文报告 continuation 分类已经接近饱和，但直接纵�
 - **推断**：由指标或样本现象支持，但仍需专门实验验证；
 - **待核验**：当前缺少足够证据，不作为正式结论。
 
-本报告中的 TATR 全量指标和 dots.ocr 历史指标属于“项目实测”；公开 TATR/POTATR/商业 MLLM 数字属于“论文报告”；关于额外结构、复杂表头等失败原因属于“待误差分析验证的推断”。
+本报告中的 TATR 全量指标和 dots.ocr 历史指标属于“项目实测”；公开 TATR/POTATR、MinerU-Popo、OCRFlux、LingDT-VL-OCR、VCCT 和商业 MLLM 数字属于“论文报告”；关于额外结构、复杂表头等失败原因属于“待误差分析验证的推断”。MinerU-Popo 已公开代码和模型，但本项目尚未复测，因此其 `92.7%` 仍只能作为外部论文结果引用。

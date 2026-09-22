@@ -4,7 +4,7 @@
 
 当前分支：`codex/two-baseline-validation-local`
 
-本地 HEAD：`db0f4ecd81036db972a0c27f14c3b9a39d4b3efa`
+本地 HEAD：`038100f45a4ff16c8bac77dfa2837d2b86ddf0d8`（本文档修订尚未提交）
 
 ## 1. 恢复工作入口
 
@@ -21,7 +21,7 @@
 
 ## 2. 当前阶段结论
 
-当前处于“两个公开基线 validation 复现与协议校正”阶段。TATR-v1.1-Pub 的 Cropped Tables validation 全量推理与两次离线评分已经完成；dots.ocr 的新严格协议目前只完成 Cropped Tables 和 Full Documents smoke，尚未完成两条全量运行。
+当前处于“公开基线 validation 复现、评测实现校正与误差分析”阶段。TATR-v1.1-Pub 的 Cropped Tables validation 全量推理已经完成；2026-09-22 发现旧预测 HTML 将表头序列化为缺少 `<tr>` 的 `<thead><th>...</th></thead>`，导致 GriTS 解析时表头行号错误。项目已从保存的 `raw_output.cells` 重建规范 HTML 并完成全量重新评分。dots.ocr 的新严格协议目前只完成 Cropped Tables 和 Full Documents smoke，尚未完成两条全量运行。
 
 接管前已有一次 dots.ocr Full Documents validation 历史运行。该运行覆盖全部 935 篇 validation 文档中的 3,522 个真值表格所在页面，但没有覆盖完整的 13,871 页，也没有进行跨页合并。因此它是有价值的历史基线证据，但不能称为当前严格协议下的 Full Documents 全量端到端结果。
 
@@ -31,7 +31,7 @@
 | --- | --- | ---: | --- |
 | PubTables-v2 固定版本数据 | 已完成 | revision `aa575e798cb00a296925e2086addb3e3fd9a1903` | Full Documents train/val/test 已在服务器；Cropped Tables val 四类文件各 13,384 个，关联检查通过 |
 | TATR-v1.1-Pub / Cropped Tables smoke | 已完成 | 4/4 | 流程、真值关联和离线复评通过 |
-| TATR-v1.1-Pub / Cropped Tables full validation | 已完成，有 65 个推理失败待后续分析 | 13,384/13,384；missing/extra/duplicate 均为 0 | 可作为 PDF-text-assisted 正式 validation 基线；65 个失败已按空预测计入指标，用户于 2026-09-22 决定现阶段先忽略，不代表问题已解决 |
+| TATR-v1.1-Pub / Cropped Tables full validation | 已完成推理、HTML 序列化修复与重新评分；有 65 个推理失败待后续分析 | 13,384/13,384；missing/extra/duplicate 均为 0 | 修正后 `Acc-Con=0.3827`，可作为 PDF-text-assisted 正式 validation 基线；旧 `Acc-Con=0.0069` 受序列化缺陷影响，已失效 |
 | dots.ocr / Cropped Tables smoke | 已完成 | 4/4 | image-only 流程通过；1 个 runner warning |
 | dots.ocr / Cropped Tables full validation | 计划中，未启动 | 0/13,384（严格全量） | 尚无正式全量指标 |
 | dots.ocr / Full Documents smoke | 已完成 | 1 文档、3/3 页 | 包含无表页；未做跨页合并；仅用于流程验证 |
@@ -49,7 +49,8 @@
 - 输入赛道：`PDF-text-assisted`
 - 输入数：13,384 张裁剪表格图像及对应 PDF Direct Text
 - 推理 run ID：`20260921T082639Z-tatr-cropped-val-full`
-- 评分 run ID：`20260921T163325Z-tatr-cropped-val-offline-score-bg`
+- 原始评分 run ID：`20260921T163325Z-tatr-cropped-val-offline-score-bg`（受 HTML 序列化缺陷影响，保留作审计，不作为正式结果）
+- 修正评分 run ID：`20260922T095039Z-tatr-cropped-val-rebuilt-score`
 
 ### 4.2 覆盖与指标
 
@@ -60,24 +61,30 @@
 | inference errors | 65 |
 | predicted tables | 13,317 |
 | invalid table HTML | 0 |
-| GriTS-Top | 0.7429088739 |
-| GriTS-Con | 0.7167619958 |
-| Acc-Top | 0.0163628213 |
-| Acc-Con | 0.0068738793 |
+| GriTS-Top | 0.8848063827 |
+| GriTS-Con | 0.8703867933 |
+| Acc-Top | 0.3897190675 |
+| Acc-Con | 0.3826957561 |
+| Topology precision / recall | 0.8406092444 / 0.9339089889 |
+| Content precision / recall | 0.8269099308 / 0.9186891800 |
 
-两次离线评分均正常退出，指标文件 SHA-256 同为 `95a4388b5387cb63e09538716447ec2e51c9f168314506fd4735556086bbffb8`；失败清单 SHA-256 同为 `8db22441ba3f0d7d088931ceb3270b010c3a2e160ee93b330c12bd07b05f15a7`。
+修正运行正常退出，退出码为 0；重建后的 13,384 条预测覆盖完整，`invalid_table_html=0`。修正 metrics SHA-256 为 `b089d5fd59f4445d41b2348cfccdd5510826a6c73df1e31e8e47c873338b58d0`，重建预测 SHA-256 为 `f762d8017637f4f77e43a7f8f54edeb07630df7186fc1e6513e13577a9e83f2f`，失败清单 SHA-256 仍为 `8db22441ba3f0d7d088931ceb3270b010c3a2e160ee93b330c12bd07b05f15a7`。
+
+旧评分得到 `GriTS-Top=0.7429`、`GriTS-Con=0.7168`、`Acc-Top=0.0164`、`Acc-Con=0.0069`。这些数值可复算，但输入 HTML 语义错误，因此只能用于说明评测实现缺陷的影响，不得继续作为模型能力结论。24 张固定分层样本在修复前为 `0/24` exact，修复后为 `9/24` exact；全量 `Acc-Con` 随后由 `0.0069` 修正为 `0.3827`。
 
 ### 4.3 证据路径
 
 - predictions：`outputs/baselines/tatr-v1.1-pub/20260921T082639Z-tatr-cropped-val-full/predictions.jsonl`
 - inference log：`logs/baselines/tatr-v1.1-pub/20260921T082639Z-tatr-cropped-val-full/inference.log`
 - GPU log：`logs/baselines/tatr-v1.1-pub/20260921T082639Z-tatr-cropped-val-full/gpu-memory.log`
-- metrics：`outputs/baselines/tatr-v1.1-pub/20260921T163325Z-tatr-cropped-val-offline-score-bg/metrics-1.json` 和 `metrics-2.json`
-- failures：同目录 `failures-1.jsonl` 和 `failures-2.jsonl`
-- checksums：同目录 `checksums.sha256`
-- score logs：`logs/baselines/tatr-v1.1-pub/20260921T163325Z-tatr-cropped-val-offline-score-bg/`
+- rebuilt predictions：`outputs/baselines/tatr-v1.1-pub/20260922T095039Z-tatr-cropped-val-rebuilt-score/predictions.jsonl`
+- metrics：同目录 `metrics.json`
+- failures：同目录 `failures.jsonl`
+- checksums 与元数据：同目录 `checksums.sha256`、`run-metadata.json`、`git-commit.txt` 和 `COMPLETE`
+- rebuild / score logs：`logs/baselines/tatr-v1.1-pub/20260922T095039Z-tatr-cropped-val-rebuilt-score/`
+- 详细实验记录：`docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`
 
-证据缺口：服务器 `artifacts/run-manifests/` 中目前只发现 TATR smoke manifest，没有发现上述全量推理的正式 run manifest。完整命令、代码 commit 和环境应从现有日志及当时同步记录继续核验，未核验前不得补写为事实。
+修正评分的服务器代码提交为 `8f3e453497389c70909ecb742fc4c7a566b578e6`，运行元数据和完整命令已保存。原始全量推理仍缺少独立的正式 run manifest，需继续依靠原推理日志、预测校验和与同步记录追溯。
 
 ## 5. dots.ocr 当前结果边界
 
@@ -97,7 +104,8 @@
 
 ## 6. 当前限制与决策
 
-- TATR 的 65 个推理失败暂时不阻塞下一阶段，但必须继续保留失败清单，论文中不得隐藏；如后续分析或对比依赖这些样本，需要单独做错误分类。
+- TATR 的 65 个推理失败暂时不阻塞下一阶段，但必须继续保留失败清单，论文中不得隐藏；它们约占 0.49%，不能解释剩余约 61.7% 的 `Acc-Con` 非完全匹配样本。
+- 修正后 `Acc-Top=0.3897` 与 `Acc-Con=0.3827` 仅相差约 0.7 个百分点，说明当前 PDF Direct Text 设置下，严格失败主要来自结构而不是额外的内容错误；precision 仍低于 recall，后续优先检查额外行列、列过分割、复杂表头和 span。
 - TATR 是 `PDF-text-assisted`，dots.ocr 是 `image-only`，两者不能作为同输入条件的直接优劣排名。
 - dots.ocr 两条全量任务预计耗时较长，必须使用可恢复分片、互斥输入清单和新的时间戳目录；启动前重新检查共享 GPU 状态。
 - 旧 dots.ocr Full Documents 指标只能标注为“真值表格页筛选、无跨页合并的历史结果”，不得用于声称已经完成严格 Full Documents 评测。
@@ -105,15 +113,17 @@
 
 ## 7. 后续工作
 
-1. 补齐 TATR 全量运行的 manifest/命令/代码版本证据；只追加元数据，不修改现有预测和指标。
-2. 设计并启动 dots.ocr Cropped Tables 全量可恢复分片运行。
-3. 设计并启动 dots.ocr Full Documents 13,871 页严格全页运行，不依据真值筛页。
-4. 完成两条 dots.ocr 全量离线复评、覆盖检查、manifest 和中文实验记录。
-5. 在页面抽取基线稳定后，单独设计 continuation、纵向拼接及对齐感知跨页重建实验。
+1. 对修正后的 TATR 失败结果做 60–80 张分层抽样，并按长表、宽表、长且宽、复杂表头和 spanning cell 报告错误类型。
+2. 做 oracle 行数、列数、表头、span 和文字归属消融，确定严格正确率的首要瓶颈。
+3. 将列过分割、表头层级和 span 一致性纳入约束化结构修复基线，并保留修复前后 paired 结果。
+4. 建立 continuation 与直接纵向拼接基线，随后研究跨页列对应、重复表头和拆分行的多关系约束重建。
+5. dots.ocr 两条全量任务继续作为算力决策项，不阻塞上述结构分析；如启动，仍须按严格全页协议运行。
 
 ## 8. 本次更新依据
 
 - 本地：`docs/experiments/2026-09-21-two-baseline-smoke.zh-CN.md`
 - 本地：`docs/superpowers/specs/2026-09-21-two-baseline-complete-validation-design.md`
 - 服务器：本文件第 4、5 节列出的原始预测、日志、指标与校验和
+- 服务器：`20260922T095039Z-tatr-cropped-val-rebuilt-score` 的重建预测、metrics、failures、checksums、运行元数据和退出码
+- 本地：`docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`
 - 2026-09-22 只读集合核验：Full Documents validation 共 13,871 页；历史预测 3,522 页；真值表格所在页 3,522 页；两集合完全相同；历史预测之外还有 10,349 页
