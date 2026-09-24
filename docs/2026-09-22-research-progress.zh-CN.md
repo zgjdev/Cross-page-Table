@@ -32,6 +32,7 @@
 | PubTables-v2 固定版本数据 | 已完成 | revision `aa575e798cb00a296925e2086addb3e3fd9a1903` | Full Documents train/val/test 已在服务器；Cropped Tables val 四类文件各 13,384 个，关联检查通过 |
 | TATR-v1.1-Pub / Cropped Tables smoke | 已完成 | 4/4 | 流程、真值关联和离线复评通过 |
 | TATR-v1.1-Pub / Cropped Tables full validation | 已完成推理、HTML 序列化修复与重新评分；有 65 个推理失败待后续分析 | 13,384/13,384；missing/extra/duplicate 均为 0 | 修正后 `Acc-Con=0.3827`，可作为 PDF-text-assisted 正式 validation 基线；旧 `Acc-Con=0.0069` 受序列化缺陷影响，已失效 |
+| TATR Cropped Tables 案例分析可视化 | 实时服务已实现并通过本地测试；服务器启动核验待完成 | 13,384 例按需加载；每次只评分当前案例 | 同屏比较原图、GT 和预测；支持前后翻页、ID 跳转和浏览留痕；自动错误标签仅是诊断线索 |
 | dots.ocr / Cropped Tables smoke | 已完成 | 4/4 | image-only 流程通过；1 个 runner warning |
 | dots.ocr / Cropped Tables full validation | 计划中，未启动 | 0/13,384（严格全量） | 尚无正式全量指标 |
 | dots.ocr / Full Documents smoke | 已完成 | 1 文档、3/3 页 | 包含无表页；未做跨页合并；仅用于流程验证 |
@@ -113,7 +114,7 @@
 
 ## 7. 后续工作
 
-1. 对修正后的 TATR 失败结果做 60–80 张分层抽样，并按长表、宽表、长且宽、复杂表头和 spanning cell 报告错误类型。
+1. 在服务器启动实时案例浏览服务，按 manifest 顺序人工浏览并记录代表案例；不再等待全量预计算。详细记录见 `docs/experiments/2026-09-24-tatr-live-case-browser.zh-CN.md`。
 2. 做 oracle 行数、列数、表头、span 和文字归属消融，确定严格正确率的首要瓶颈。
 3. 将列过分割、表头层级和 span 一致性纳入约束化结构修复基线，并保留修复前后 paired 结果。
 4. 建立 continuation 与直接纵向拼接基线，随后研究跨页列对应、重复表头和拆分行的多关系约束重建。
@@ -126,4 +127,6 @@
 - 服务器：本文件第 4、5 节列出的原始预测、日志、指标与校验和
 - 服务器：`20260922T095039Z-tatr-cropped-val-rebuilt-score` 的重建预测、metrics、failures、checksums、运行元数据和退出码
 - 本地：`docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`
+- 本地：`docs/experiments/2026-09-24-tatr-case-analysis-visualization.zh-CN.md`
+- 本地：`docs/experiments/2026-09-24-tatr-live-case-browser.zh-CN.md`
 - 2026-09-22 只读集合核验：Full Documents validation 共 13,871 页；历史预测 3,522 页；真值表格所在页 3,522 页；两集合完全相同；历史预测之外还有 10,349 页

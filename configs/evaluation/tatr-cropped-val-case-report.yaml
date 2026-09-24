@@ -1,0 +1,11 @@
+manifest: artifacts/input-manifests/20260921T071841Z-smoke-input-manifests/tatr-cropped-val-full.jsonl
+predictions:
+  - outputs/baselines/tatr-v1.1-pub/20260922T095039Z-tatr-cropped-val-rebuilt-score/predictions.jsonl
+truth_dir: data/pubtables-v2/extracted/Cropped Tables/val/tables/Cropped Tables/val/tables
+images_dir: data/pubtables-v2/extracted/Cropped Tables/val/images/Cropped Tables/val/images
+collection: cropped_tables
+output_root: outputs/analysis/table-case-reports
+run_name: tatr-cropped-case-report
+sample_size: 60
+seed: 20260924
+include_ids: []
