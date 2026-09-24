@@ -1,4 +1,6 @@
 import json
+import os
+import subprocess
 import sys
 import threading
 import types
@@ -141,3 +143,21 @@ def test_http_server_exposes_live_case_and_image(tmp_path: Path) -> None:
 def test_server_refuses_non_loopback_binding(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="loopback"):
         create_server(_browser(tmp_path), host="0.0.0.0", port=8765)
+
+
+def test_script_entrypoint_can_load_from_repository_root(tmp_path: Path) -> None:
+    (tmp_path / "pylcs.py").write_text(
+        "def lcs_sequence_length(left, right): return 0\n", encoding="utf-8"
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(tmp_path)
+    result = subprocess.run(
+        [sys.executable, "scripts/serve_table_case_browser.py", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "--config" in result.stdout

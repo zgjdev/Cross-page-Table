@@ -14,7 +14,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-for dependency_path in (REPOSITORY_ROOT / "src", REPOSITORY_ROOT / "third_party/grits-main"):
+for dependency_path in (
+    REPOSITORY_ROOT,
+    REPOSITORY_ROOT / "src",
+    REPOSITORY_ROOT / "third_party/grits-main",
+):
     if str(dependency_path) not in sys.path:
         sys.path.insert(0, str(dependency_path))
 
