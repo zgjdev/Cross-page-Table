@@ -15,6 +15,7 @@
 截至本次核验：
 
 - 最接近“已知两个片段后恢复完整表格”的公开结果来自 **OCRFlux-3B**：在 9,064 对人为拆分的 PubTabNet HTML 表格片段上，合并后平均 `TEDS=0.950`。但输入是已经识别好的 HTML 片段，不是两个自然跨页表格图像，且没有报告严格整表完全匹配率。
+- **MinerU-Popo** 是本报告上一版遗漏的直接相关工作：它把跨页表恢复作为 OCR 输出的后处理，先判断片段是否续接，再逐列判断分页边界处的单元格是否应语义合并；其表格任务报告局部 merge-method prediction accuracy `92.7%`。该数字是边界决策准确率，不是整表 `Acc-Con` 或 TEDS。
 - 在自然跨页完整文档上，**POTATR + ViT-B/16 continuation classifier + vertical concatenation** 在 PubTables-v2 Full Documents 上报告 `GriTS-Con=0.8269`、`Acc-Con=0.2176`、`TEDS=0.7824`。这包含页面提取和合并的联合误差，不是纯拼接模块的成绩。
 - **LingDT-VL-OCR** 在 472 张金融跨页表格上使用逐页 VLM 解析和启发式拼接，报告平均 `TEDS=0.8915`，但未报告 exact match，也未公开同一跨页子集上的完整对照结果。
 - PubTables-v2 的 ViT-B/16 续接分类达到 `F1=0.991`，说明“是否续接”已相对容易；端到端 `Acc-Con` 仍低，说明真正未充分解决的是列对应、重复表头、跨页拆分行/单元格和完整结构重建。
@@ -33,6 +34,7 @@
 | dots.ocr + merging（POTATR论文版本） | 与上一项相同 | dots.ocr + ViT-B/16 + 纵向拼接 | PubTables-v2 Full Documents | GriTS、Acc、TEDS | `GriTS-Top=0.7772`、`GriTS-Con=0.7495`、`Acc-Top=0.5059`、`Acc-Con=0.1180`、`TEDS-S=0.8022`、`TEDS=0.7731` | 与 PubTables-v2 原论文同名设置数值不同，需按论文版本分别引用 |
 | LingDT-VL-OCR | 金融文档逐页解析后合并真实跨页表格 | 自研 VLM + adaptive heuristic-based splicing | FinDocBench：1,044 张表，其中 472 张跨至少两页 | 跨页拼接 TEDS | **`0.8915`** | 自然跨页表专用结果，但数据、模型和协议不能与 PubTables-v2直接横比 |
 | VCCT | 电力故障报告中的跨页表识别与上下文恢复 | 表头检测、边框分析、跨页上下文融合，另结合 YOLOv11 手写检测 | 私有约 300 张跨页表格 | 作者定义 Structural Integrity Rate（SIR） | `77.2% → 82.0%`；另报 cell accuracy `86.3%` | 私有领域、小规模、非标准指标且为 SSRN 预印本，仅作补充证据 |
+| MinerU-Popo | OCR/文档解析输出的跨页表格后处理；先判断续接，再逐列判断边界单元格是否合并 | 轻量 `4B` post-processing VLM；任务化输入与动态 chunking | PostDocBench；表格子任务约 `1,317` 个 cell-level merge units | merge-method prediction accuracy | **`92.7%`** | 直接覆盖局部表格截断恢复，但不是整表 exact match；尚未在 PubTables-v2 复测 |
 | BERT-Based Semantic Matching | 判断财务 PDF 表格片段是否具有续接关系并合并 | 表头/语义特征 + BERT 语义匹配 | 私有财务 PDF | 分类 Precision/Recall/F1 | 未找到可公开核验的完整表格重建指标 | 属于续接匹配，不足以回答整表恢复效果 |
 
 ## 3. 各项研究的论文、方法与结果
@@ -116,7 +118,29 @@ FinDocBench 包含 1,044 张表，其中 472 张跨至少两页。作者在这 4
 
 由于论文没有报告相同子集上的 exact match，也没有给出其他方法的同协议跨页对照，所以不能把 `0.8915` 解释为 89.15% 表格完全正确，也不能直接宣称为通用 SOTA。
 
-### 3.5 VCCT
+### 3.5 MinerU-Popo
+
+**论文：** **MinerU-Popo: Universal Post-Processing Model for Structured Document Parsing**，arXiv:2605.24973。
+
+论文链接：<https://arxiv.org/abs/2605.24973>
+
+官方仓库：<https://github.com/opendatalab/MinerU-Popo>
+
+MinerU-Popo 不是独立的页面图像表格识别器，而是接收不同 OCR/文档解析器的页面级输出，进行文档级后处理。与本项目最相关的 table truncation recovery 将任务分解为：判断相邻页表格是否属于同一逻辑表，以及对每一列的分页边界单元格判断“保持分开”还是“语义合并”。论文使用 task-oriented data engine、约 `30K` 合成训练数据和轻量 `4B` VLM，并用 dynamic chunking 处理长文档。
+
+论文在 PostDocBench 的表格截断任务上报告 `92.7%` 的 merge-method prediction accuracy；该任务约包含 `1,317` 个 cell-level merge units。这个结果只评价局部边界决策，不能解释为完整逻辑表格的结构或内容 exact match。论文摘要中的 title-hierarchy `TEDS=90.6` 也不是表格恢复指标，不能混用。
+
+它是本项目必须补入的可复现后处理基线，但仍有三个边界：未报告 PubTables-v2 Full Documents 的 `Acc-Con`/`GriTS`/`TEDS`，上游 OCR 和页面结构误差不在该数值中，且合成截断样本与 PubTables-v2 的自然分页分布是否一致待核验。后续应优先审计其输入输出格式、许可证、官方评测脚本，并在固定页面解析输入上做 paired 复测。
+
+### 3.6 MonkeyOCR v1.5 与 PaddleOCR-VL-1.5
+
+**MonkeyOCR v1.5：** <https://arxiv.org/abs/2511.10390>；**PaddleOCR-VL-1.5：** <https://arxiv.org/abs/2601.21957>。
+
+这两项工作应列为“相关但不等价”的通用文档解析系统。MonkeyOCR v1.5 明确提出 `Type-Guided Table Merging`，覆盖三种模式：完整表头重复、无表头续接、分页处拆分行；其描述还包括列 schema 对齐、span 冲突处理和表头 token 归一化。PaddleOCR-VL-1.5 的工程管线也包含 cross-page table merging 的后处理能力。
+
+但当前核验到的论文证据主要是能力对比、方法描述和定性案例，没有找到在 PubTables-v2 或公开跨页专用测试集上报告可复核的 `Acc-Con`、跨页子集 TEDS 或局部 merge accuracy。因此它们不能替代 MinerU-Popo、POTATR 或 OCRFlux 的定量结果，也不能据能力宣称已解决跨页表格恢复。它们值得作为后续 image-only/通用 VLM 基线，但前提是冻结版本、输入输出协议和评测集。
+
+### 3.7 VCCT
 
 **论文：****VCCT: Vocabulary Constraint and Cross-page Context for Table Recognition in Power Grid Fault Reports**，SSRN 预印本。
 
@@ -128,7 +152,7 @@ SSRN 页面：<https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6811737>
 
 SIR 是作者自定义的结构完整性指标，不等价于 PubTables-v2 的 `Acc-Con` 或 TEDS；数据和代码未公开，论文为未同行评审的 SSRN 预印本，因此只能作为领域案例和方法线索，不能作为核心可复现基线。
 
-### 3.6 BERT 语义匹配方法
+### 3.8 BERT 语义匹配方法
 
 **论文：****Application of BERT-Based Semantic Matching Algorithm for Cross-Page Table Recognition**，收录于 Springer *Artificial Intelligence in China*。
 
@@ -196,7 +220,8 @@ VCCT 的 SIR 是作者定义的结构完整性比例。它没有形成通用标�
 2. **简单纵向连接能提高平均相似度，但不能保证整表完全正确。**dots.ocr 的软指标提高而 `Acc-Con` 保持 0.1180；POTATR 合并后的 `Acc-Con` 也只有 0.2176。
 3. **现有纯拼接实验过于理想化。**OCRFlux 证明生成模型可以很好地合并干净 HTML 片段，但没有覆盖自然图像识别误差和真实分页关系。
 4. **值得研究的核心是显式关系和约束重建。**包括列对应、重复表头、拆分行/单元格、子表头变化、多页全局表归属，以及在上游识别有误时生成结构有效的完整表格。
-5. **应同时设置隔离轨道与端到端轨道。**隔离轨道使用真值或人工校验的片段，单独评价拼接模块；端到端轨道使用固定页面提取器，在 PubTables-v2 Full Documents 上评价完整系统。
+5. **应同时设置后处理隔离轨道与端到端轨道。**MinerU-Popo 提供了“固定上游输出、只评估跨页边界决策”的先例；项目应进一步使用真实页面片段评估列对应、重复表头、拆分行和最终整表恢复。端到端轨道仍应使用固定页面提取器，在 PubTables-v2 Full Documents 上评价完整系统。
+6. **通用 VLM 的“支持跨页合并”不能视为定量结果。**MonkeyOCR v1.5 和 PaddleOCR-VL-1.5 说明工程上已有相关模块，但缺少公开、同协议、可复核的专用指标，因此只能作为能力边界和候选基线。
 
 建议项目后续至少报告：
 
@@ -208,10 +233,10 @@ VCCT 的 SIR 是作者定义的结构完整性比例。它没有形成通用标�
 
 ## 7. 证据状态
 
-- **已核验的一手证据：**OCRFlux 官方仓库、模型卡和数据卡；PubTables-v2、POTATR、LingDT-VL-OCR、TEDS、GriTS 原始论文。
+- **已核验的一手证据：**OCRFlux 官方仓库、模型卡和数据卡；PubTables-v2、POTATR、LingDT-VL-OCR、MinerU-Popo、MonkeyOCR v1.5、PaddleOCR-VL-1.5、TEDS、GriTS 原始论文或官方项目页面。
 - **低置信度补充证据：**VCCT，原因是未同行评审、私有数据、私有代码和自定义指标。
-- **未得到完整结果的相关工作：**BERT-Based Semantic Matching，只核验到续接匹配方向，未找到可复核的最终整表重建指标。
-- **待核验问题：**PubTables-v2 原论文与 POTATR 论文中 dots.ocr + merging 数值差异的具体实现来源；OCRFlux 构造性拆分规则及其与自然跨页错误分布的差异。
+- **未得到完整结果的相关工作：**BERT-Based Semantic Matching 只核验到续接匹配方向；MonkeyOCR v1.5 与 PaddleOCR-VL-1.5 核验到跨页合并模块和案例，但未找到可复核的专用定量结果。
+- **待核验问题：**PubTables-v2 原论文与 POTATR 论文中 dots.ocr + merging 数值差异的具体实现来源；OCRFlux 构造性拆分规则及其与自然跨页错误分布的差异；MinerU-Popo 合成截断与 PubTables-v2 自然分页的分布差异；MonkeyOCR/PaddleOCR-VL 的跨页模块是否有可公开调用的独立评测脚本。
 
 ## 8. 参考文献与官方资源
 
@@ -225,3 +250,7 @@ VCCT 的 SIR 是作者定义的结构完整性比例。它没有形成通用标�
 8. **OCRFlux official repository.** <https://github.com/chatdoc-com/OCRFlux>
 9. **OCRFlux-3B model card.** <https://huggingface.co/ChatDOC/OCRFlux-3B>
 10. **OCRFlux-pubtabnet-cross dataset.** <https://huggingface.co/datasets/ChatDOC/OCRFlux-pubtabnet-cross>
+11. **MinerU-Popo: Universal Post-Processing Model for Structured Document Parsing.** <https://arxiv.org/abs/2605.24973>
+12. **MinerU-Popo official repository.** <https://github.com/opendatalab/MinerU-Popo>
+13. **MonkeyOCR v1.5 Technical Report.** <https://arxiv.org/abs/2511.10390>
+14. **PaddleOCR-VL-1.5: Towards a Multi-Task 0.9B VLM for Robust In-the-Wild Document Parsing.** <https://arxiv.org/abs/2601.21957>
