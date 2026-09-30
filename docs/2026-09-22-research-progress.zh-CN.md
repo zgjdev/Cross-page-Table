@@ -1,10 +1,10 @@
 # 项目研究进度
 
-最后更新：2026-09-22（Asia/Shanghai）
+最后更新：2026-09-23（Asia/Shanghai）
 
 当前分支：`codex/two-baseline-validation-local`
 
-本地 HEAD：`038100f45a4ff16c8bac77dfa2837d2b86ddf0d8`（本文档修订尚未提交）
+本地 HEAD：`3eacec099eb51f90af96e6a41bfda3e640a42c0c`（本轮汇报文档修订尚未提交）
 
 ## 1. 恢复工作入口
 
@@ -128,3 +128,4 @@
 - 服务器：`20260922T095039Z-tatr-cropped-val-rebuilt-score` 的重建预测、metrics、failures、checksums、运行元数据和退出码
 - 本地：`docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`
 - 2026-09-22 只读集合核验：Full Documents validation 共 13,871 页；历史预测 3,522 页；真值表格所在页 3,522 页；两集合完全相同；历史预测之外还有 10,349 页
+- 2026-09-23：导师汇报文档调整为宏观讨论版，移除运行级实现过程和异常明细；完整技术证据继续保留在实验记录和服务器产物中

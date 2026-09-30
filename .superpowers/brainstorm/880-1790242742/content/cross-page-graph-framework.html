@@ -1,0 +1,74 @@
+<div id="cross-page-framework">
+  <style>
+    #cross-page-framework { color: var(--foreground); }
+    #cross-page-framework .subtitle { margin-bottom: 18px; }
+    #cross-page-framework .compare { display: grid; grid-template-columns: 1fr 1.25fr; gap: 22px; align-items: start; }
+    #cross-page-framework .lane { min-width: 0; }
+    #cross-page-framework .lane h3 { margin-bottom: 12px; }
+    #cross-page-framework .flow { display: grid; gap: 8px; }
+    #cross-page-framework .node { padding: 11px 12px; background: color-mix(in srgb, var(--muted) 70%, transparent); border-left: 4px solid var(--border); }
+    #cross-page-framework .node strong { display: block; margin-bottom: 3px; }
+    #cross-page-framework .node small { color: var(--muted-foreground); }
+    #cross-page-framework .node.core { background: color-mix(in srgb, var(--viz-series-1) 16%, transparent); border-left-color: var(--viz-series-1); }
+    #cross-page-framework .node.output { background: color-mix(in srgb, var(--viz-series-3) 14%, transparent); border-left-color: var(--viz-series-3); }
+    #cross-page-framework .arrow { text-align: center; color: var(--muted-foreground); line-height: 1; }
+    #cross-page-framework .relations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 8px; }
+    #cross-page-framework .relation { padding: 8px; background: color-mix(in srgb, var(--viz-series-2) 13%, transparent); }
+    #cross-page-framework .boundary { margin: 22px 0 14px; display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+    #cross-page-framework .principle { padding-top: 10px; border-top: 2px solid var(--border); }
+    #cross-page-framework .principle b { display:block; margin-bottom:4px; }
+    #cross-page-framework .verdict { margin-top: 18px; padding: 12px 14px; background: color-mix(in srgb, var(--viz-series-1) 12%, transparent); border-left: 4px solid var(--viz-series-1); }
+    @media (max-width: 720px) {
+      #cross-page-framework .compare, #cross-page-framework .boundary { grid-template-columns: 1fr; }
+      #cross-page-framework .relations { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <h2>“简单串联”与“关系图重建”不是同一个框架</h2>
+  <p class="subtitle">核心区别：新方法不是在流水线中增加一个“拼接开关”，而是把跨页结构关系定义成主要预测对象。</p>
+
+  <div class="compare">
+    <section class="lane" aria-label="简单流水线">
+      <h3>普通流水线：工程拼接</h3>
+      <div class="flow">
+        <div class="node"><strong>已有页面模型</strong><small>TATR / POTATR / dots.ocr</small></div>
+        <div class="arrow">↓</div>
+        <div class="node"><strong>判断是否续接</strong><small>二分类：拼 / 不拼</small></div>
+        <div class="arrow">↓</div>
+        <div class="node"><strong>直接纵向追加</strong><small>删除第二页表头或直接追加行</small></div>
+        <div class="arrow">↓</div>
+        <div class="node output"><strong>合并 HTML</strong><small>无法显式修复列错位、拆分行和跨页 cell</small></div>
+      </div>
+    </section>
+
+    <section class="lane" aria-label="关系图重建框架">
+      <h3>推荐框架：跨页关系图重建</h3>
+      <div class="flow">
+        <div class="node"><strong>标准化页面片段图</strong><small>行、列、cell、文本、bbox、视觉 ROI；上游模型可替换</small></div>
+        <div class="arrow">↓</div>
+        <div class="node core">
+          <strong>跨页关系编码器（论文核心模型）</strong>
+          <small>两个片段联合编码，通过 cross-attention / graph transformer 推理跨页关系</small>
+          <div class="relations">
+            <div class="relation">列 ↔ 列对应</div>
+            <div class="relation">重复表头判定</div>
+            <div class="relation">尾行 ↔ 首行延续</div>
+            <div class="relation">跨页 cell / span 延续</div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="node core"><strong>全局约束解码器（第二个贡献）</strong><small>单调列匹配、唯一映射、结构合法、多页一致、冲突回退</small></div>
+        <div class="arrow">↓</div>
+        <div class="node output"><strong>可追溯的完整逻辑表</strong><small>每个 cell 保留来源页、来源框、关系置信度和修复记录</small></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="boundary" aria-label="模块边界">
+    <div class="principle"><b>已有模型负责</b><span>页面内检测、OCR、单页行列和 cell 结构。</span></div>
+    <div class="principle"><b>新模型负责</b><span>跨页对应关系与分页边界处的结构判断。</span></div>
+    <div class="principle"><b>解码器负责</b><span>把局部关系组合成全局合法、可验证的完整表。</span></div>
+  </div>
+
+  <div class="verdict"><strong>论文主张：</strong>不是“串联模型后加一个拼接器”，而是“把多个页面表格片段视为一个跨页图，学习其关系并进行全局受约束重建”。</div>
+</div>
