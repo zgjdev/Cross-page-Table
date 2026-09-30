@@ -16,6 +16,9 @@ outputs/
 .deps/
 logs/
 tmp/
+.superpowers/**/state/
+.superpowers/**/.last-token
+.superpowers/**/.last-port
 
 .env
 .env.*

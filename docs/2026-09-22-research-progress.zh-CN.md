@@ -142,6 +142,7 @@
 - 本地：`docs/experiments/2026-09-24-tatr-case-analysis-visualization.zh-CN.md`
 - 本地：`docs/experiments/2026-09-24-tatr-live-case-browser.zh-CN.md`
 - 2026-09-22 只读集合核验：Full Documents validation 共 13,871 页；历史预测 3,522 页；真值表格所在页 3,522 页；两集合完全相同；历史预测之外还有 10,349 页
+- 2026-09-23：导师汇报文档调整为宏观讨论版，移除运行级实现过程和异常明细；完整技术证据继续保留在实验记录和服务器产物中。
 
 ## 9. 2026-09-29 跨页研究补充调研
 
