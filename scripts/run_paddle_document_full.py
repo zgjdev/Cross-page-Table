@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
 import subprocess
 from pathlib import Path
 
-from cptla.evaluation.document_run import digest, read_frozen_manifest, run_batch, write_new_json
+from cptla.evaluation.document_run import (
+    canonical_manifest_bytes,
+    digest,
+    read_frozen_manifest,
+    run_batch,
+    write_new_json,
+)
 
 MANIFEST = (
     "artifacts/input-manifests/20260921T071841Z-smoke-input-manifests/"
@@ -89,13 +96,20 @@ def validate_child(prediction, inputs, doc, split, project):
     }
 
 
-def export_complete_batch(output, summary, manifest, documents):
+def export_complete_batch(output, summary, manifest, documents, *, expected_manifest_sha):
     """Create a fresh scoring-compatible view; never move/delete original per-doc runs."""
+    manifest_blob = canonical_manifest_bytes(manifest, expected_manifest_sha)
+    expected = [(d["document_id"], i) for d in documents for i in range(d["pages"])]
+    if [
+        (r["document_id"], r["page_number"])
+        for r in (json.loads(line) for line in manifest_blob.splitlines())
+    ] != expected:
+        raise ValueError("Export manifest differs from completed document coverage")
     inputs, predictions = output / "exported-inputs", output / "exported-predictions"
     inputs.mkdir()
     predictions.mkdir()
     with (inputs / "input-manifest.jsonl").open("xb") as handle:
-        handle.write(manifest.read_bytes())
+        handle.write(manifest_blob)
     packing = {
         "pdf_text_audit": "empty",
         "embedded_image_audit": "byte-identical",
@@ -152,7 +166,9 @@ def main():
         rows = [json.loads(line) for line in manifest.read_text().splitlines()]
         sha, page_count = digest(manifest), len(rows)
         document_count = len({r["document_id"] for r in rows})
-    documents = read_frozen_manifest(manifest, images, sha, page_count, document_count)
+    documents = read_frozen_manifest(
+        manifest, images, sha, page_count, document_count, complete_directory=(split == "val")
+    )
     if shutil.disk_usage(project).free < 100 * 1024**3:
         raise RuntimeError("Need at least 100 GiB free on the shared filesystem")
     worker_python = project / WORKER_PYTHON
@@ -179,6 +195,9 @@ def main():
         "split": split,
         "input_track": "image-only",
         "manifest_sha256": sha,
+        "ordered_manifest_sha256": hashlib.sha256(
+            canonical_manifest_bytes(manifest, sha)
+        ).hexdigest(),
         "data_revision": "aa575e798cb00a296925e2086addb3e3fd9a1903",
         "versions": versions,
         "seed": 0,
@@ -205,12 +224,24 @@ def main():
     ).strip()
     if int(gpu.split(",")[1].strip()) < 20000:
         raise RuntimeError("Shared GPU has less than 20000 MiB free")
+    gpu_uuid = subprocess.check_output(
+        ["nvidia-smi", f"--id={args.gpu}", "--query-gpu=uuid", "--format=csv,noheader"], text=True
+    ).strip()
+    processes = subprocess.check_output(
+        [
+            "nvidia-smi",
+            "--query-compute-apps=gpu_uuid,pid,used_gpu_memory",
+            "--format=csv,noheader,nounits",
+        ],
+        text=True,
+    ).splitlines()
     preflight = {
         "status": "ready",
         "documents": len(documents),
         "pages": page_count,
         "protocol": protocol,
         "gpu_snapshot": gpu,
+        "gpu_compute_processes": [line for line in processes if line.startswith(gpu_uuid + ",")],
         "note": "readiness snapshot, not an exclusive GPU reservation",
     }
     print(json.dumps(preflight), flush=True)
@@ -263,7 +294,9 @@ def main():
 
     try:
         summary = run_batch(documents, output, protocol, worker, project=project, resume=resume)
-        export_complete_batch(output, summary, manifest, documents)
+        export_complete_batch(
+            output, summary, manifest, documents, expected_manifest_sha=protocol["manifest_sha256"]
+        )
         write_new_json(
             output / "export-complete.json",
             {

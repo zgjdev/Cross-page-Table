@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import uuid
 from pathlib import Path
 
 
@@ -13,14 +15,33 @@ def digest(path):
 
 
 def write_new_json(path, value):
-    with path.open("x", encoding="utf-8") as handle:
+    if path.exists():
+        raise FileExistsError(path)
+    pending = path.with_name(f".{path.name}.{uuid.uuid4().hex}.pending")
+    with pending.open("x", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    # Atomic, same-directory publication; no existing name is replaced.
+    # Retain all pending artifacts rather than deleting or moving server data.
+    os.link(pending, path)
 
 
-def read_frozen_manifest(path, images, expected_sha, expected_pages, expected_documents):
-    if digest(path) != expected_sha:
+def canonical_manifest_bytes(path, expected_sha):
+    blob = path.read_bytes()
+    if hashlib.sha256(blob).hexdigest() != expected_sha:
         raise ValueError("Frozen input manifest SHA mismatch")
-    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows = [json.loads(line) for line in blob.splitlines()]
+    rows.sort(key=lambda row: (row["document_id"], row["page_number"]))
+    return "".join(
+        json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for row in rows
+    ).encode("utf-8")
+
+
+def read_frozen_manifest(
+    path, images, expected_sha, expected_pages, expected_documents, *, complete_directory=False
+):
+    rows = [json.loads(line) for line in canonical_manifest_bytes(path, expected_sha).splitlines()]
     if len(rows) != expected_pages:
         raise ValueError("Frozen input page count mismatch")
     documents = {}
@@ -47,6 +68,11 @@ def read_frozen_manifest(path, images, expected_sha, expected_pages, expected_do
         documents.setdefault(doc, []).append(number)
     if len(documents) != expected_documents:
         raise ValueError("Frozen input document count mismatch")
+    if (
+        complete_directory
+        and {p.name for p in images.iterdir() if p.suffix.lower() == ".jpg"} != seen
+    ):
+        raise ValueError("Frozen manifest differs from complete image directory membership")
     for doc, numbers in documents.items():
         if numbers != list(range(len(numbers))):
             raise ValueError(f"Noncontiguous or out-of-order document pages: {doc}")

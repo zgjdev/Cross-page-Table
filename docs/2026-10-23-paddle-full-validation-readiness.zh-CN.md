@@ -42,3 +42,11 @@ PYTHONPATH=src .venvs/eval312/bin/python scripts/run_paddle_document_full.py \
 ```
 
 实际启动时选全新UTC时间戳RUN_ID，去掉 `--preflight`；后台启动要将stdout/stderr写入新时间戳launcher日志，保留systemd unit/PID。此文档命令不是启动证据；完成门禁前不执行全量。恢复命令添加 `--resume-from artifacts/paddle-document-runs/<旧RUN_ID>`（如多段则全部传入，无重叠checkpoint）。
+
+## 入口验收中间检查点
+
+代码初版 `d3c32b5` 服务器72回归测试通过。初次完整val只读预检发现原固定清单按文件名字典序排列（例如page_10先于page_2），在PMC10157785拒绝非数字页序；没有启动任何val推理。现保留原清单及其SHA，新增按document_id/page_number排序的派生清单，并单列ordered SHA；不改变成员、不读GT，同时核验val图片目录完整成员相等。
+
+初版完整入口train pilot `20261023T102500Z-paddle-train-pilot` 已完成，用户unit `paper-paddle-full-entry-pilot-20261023T102500Z.service` 初始PID1250488、exit0、inactive；输入清单 `artifacts/input-manifests/20261023T102500Z-paddle-train-pilot.jsonl`（PMC11626747全4页，SHA550a2f04f87e47a5a91571b9e24fd4e57e4ab9f23a36c99a216ee3f9dcfc1688）。输出 `artifacts/paddle-document-runs/20261023T102500Z-paddle-train-pilot/` 已生成checkpoint和导出；launcher `logs/paddle-launchers/20261023T102500Z/pilot.log`。这一额外GPU重跑用于新编排入口验收，不当作独立性能重复实验。
+
+代码审查又核验出checkpoint写入中断与导出清单变化两项保护缺口，均通过RED/GREEN回归后修复：先写独占UUID `.pending` 文件，flush/fsync，再用同目录硬链接原子发布最终JSON，不覆盖/删除临时或旧产物；恢复只扫描最终*.json。导出对同一份bytes重新核对原始SHA，再排序/写出并核验全部文档页序。代码复审确认无Critical/Important；最终版需重新pilot及恢复验证（源码SHA改变后不得冒用初版protocol）。所有初版产物保留。

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from cptla.evaluation.document_run import digest
+from cptla.evaluation.document_run import canonical_manifest_bytes, digest
 from scripts.run_paddle_document_full import (
     export_complete_batch,
     validate_child,
@@ -62,9 +62,20 @@ def test_child_provenance_and_scoring_export(child):
     out = project / "batch"
     out.mkdir()
     manifest = project / "manifest.jsonl"
-    manifest.write_text("frozen-all-pages\n")
-    export_complete_batch(out, {"results": {"PMC1": result}, "pages": 2}, manifest, [doc])
-    assert (out / "exported-inputs/input-manifest.jsonl").read_bytes() == manifest.read_bytes()
+    manifest.write_text(
+        "".join(json.dumps({"document_id": "PMC1", "page_number": i}) + "\n" for i in range(2))
+    )
+    checksum = digest(manifest)
+    export_complete_batch(
+        out,
+        {"results": {"PMC1": result}, "pages": 2},
+        manifest,
+        [doc],
+        expected_manifest_sha=checksum,
+    )
+    assert (out / "exported-inputs/input-manifest.jsonl").read_bytes() == canonical_manifest_bytes(
+        manifest, checksum
+    )
     assert (out / "exported-predictions/pages.jsonl").read_bytes() == (
         prediction / "pages.jsonl"
     ).read_bytes()
@@ -97,3 +108,23 @@ def test_model_mutation_is_detected(tmp_path):
     model.write_bytes(b"other")
     with pytest.raises(ValueError, match="integrity"):
         verify_model(tmp_path, "rev")
+
+
+def test_changed_frozen_manifest_blocks_export_before_writing(child):
+    project, prediction, inputs, doc = child
+    result = validate_child(prediction, inputs, doc, "train", project)
+    manifest = project / "manifest.jsonl"
+    manifest.write_text(json.dumps({"document_id": "PMC1", "page_number": 0}) + "\n")
+    checksum = digest(manifest)
+    manifest.write_text("changed")
+    out = project / "batch"
+    out.mkdir()
+    with pytest.raises(ValueError, match="SHA"):
+        export_complete_batch(
+            out,
+            {"results": {"PMC1": result}, "pages": 2},
+            manifest,
+            [doc],
+            expected_manifest_sha=checksum,
+        )
+    assert not (out / "exported-inputs").exists()

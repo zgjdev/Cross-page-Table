@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 全量入口验收中间检查点：**新增按文档独占输出+checkpoint恢复入口，服务器初版72测试通过；train四页完整入口pilot `20261023T102500Z-paddle-train-pilot`已exit0，未运行val。只读val预检发现固定清单是词法页序，已改为保留原SHA/成员并单列数字页序派生SHA；并修复审查发现的checkpoint原子发布/导出清单再核验，复审无阻塞。最终版服务器回归、pilot恢复及完整val只读预检仍待完成。详见 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`；不可据初版pilot声称已ready或全量运行中。
+
 - **2026-10-23 进一步全量门禁准备：**用户要求持续推进到可开始全量推理；新CLI集成回归服务器62测试通过。额外train负例文档PMC11626747全4页（官方负对[1,2]、无正对，且两页对应不同逻辑表）已打包，GPU0门禁空余39,607MiB后启动 `paper-paddle-negative-20261023T101200Z.service`，初始PID1156473；输出 `outputs/baselines/paddleocr-vl-1.5/20261023T101200Z-paddle-train-smoke/`、launcher `logs/paddle-launchers/20261023T101200Z/smoke.log`，完成状态待核验。无val推理启动。接下来有限真实负例验证及全量按文档断点入口/固定清单预检。
 
 - **2026-10-23 10:02 UTC Paddle 三组 train 评分完成：**CPU复用6页预测；官方原版与无合并相同，全表 GriTS-Con=0.6438514；content-compatible 全表/跨页子集 GriTS-Con=0.9891835、结构网格exact=2/2、内容网格exact=0/2，两表匹配来源页均[1,2]完整。60相关测试通过、原输入及适配输出SHA全部核验不变。仅两个选定train正例，不是正式性能/负例误连率。评分 `artifacts/paddle-smoke/20261023T100300Z-three-condition-train-scores/`，详细命令/指标/限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一阶段更多train正负例审计及可恢复val入口；目前无GPU/后台评分运行、val全量未启动。
