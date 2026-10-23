@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-10-23 Paddle 执行检查点：独立新环境后台安装运行中，PP-DocLayoutV3 四文件在 08:14:43 UTC 全部校验下载完成；两份 train 完整三页文档拟生成 image-only PDF 进行官方管线与跨页重组 smoke。本地输入打包/下载器合计 10 测试通过；尚无 GPU 推理或新分数。PID、命令、模型 SHA、日志和输入审计见 [Paddle 环境与 smoke](experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md)。
+
 2026-10-23 08:06 UTC 检查点：三模型主权重下载已于 07:58:19 UTC 正常结束（status=0），Paddle/OCRFlux/Popo 共50文件均完成下载器大小/哈希校验；本次再核对文件数量、当前大小及权重哈希记录一致。没有启动新模型推理；下一步 Paddle 独立环境与 train smoke。详细记录见 [公开模型下载](experiments/2026-10-23-public-model-downloads.zh-CN.md)。
 
 2026-10-23 06:42 UTC 检查点：三模型后台权重下载已启动，service `paper-public-models-20261023T064109Z`、PID `3915961`、初始 active/running；新目录与50文件逐项校验已留痕。下载未完成、GPU 推理未启动。记录见 [公开模型下载](experiments/2026-10-23-public-model-downloads.zh-CN.md)。

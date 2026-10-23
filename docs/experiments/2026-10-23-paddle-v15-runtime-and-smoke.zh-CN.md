@@ -19,3 +19,11 @@
 CPU 源码审计确认 PaddleX `PADDLE_PDX_CACHE_HOME` 可重定向缓存，native 模型加载支持显式目录。实际导入前必须设置项目内的 PaddleX/HF/ModelScope/TMP 缓存，并显式提供 VLM 与版面组件路径；关闭方向与去畸变组件，避免额外隐式模型下载。原生图像文字仍来自 VLM，不读取 PDF words。
 
 启动前只读 GPU 快照：GPU 0/1/2/3 空余 39,607/423/25,343/22,761 MiB，全部存在其他计算进程。当前只执行安装/下载；执行真实 smoke 前须再次核查，不把此快照当独占保证。后台安装与组件下载的实际 PID、日志和结束状态将在启动后追加。
+
+## 后台启动与输入准备检查点
+
+- 已提供：2026-10-23 08:10 UTC 启动用户级 `paper-paddle-setup-20261023T081029Z.service`（初始 PID `330647`）和 `paper-paddle-layout-20261023T081029Z.service`（初始 PID `330651`）。launcher 日志分别为 `logs/paddle-launchers/20261023T081029Z/setup.log`、`layout.log`，安装脚本 commit `b22bc29`。安装仍运行，已开始下载 Paddle/CUDA wheel；不等于安装成功。
+- 已提供：组件下载在 **08:14:43 UTC** `end status=0`，unit `inactive/dead`、退出码 0；四文件均由下载器大小/哈希验证通过。证据 `logs/model-downloads/20261023T081029Z-paddle-layout/{events.jsonl,summary.json}`。无需重复下载。
+- 输入计划：train 文档 `PMC10235804`、`PMC10311686`，各三页（0、1、2），包括无表页；train 表标签只用于选择小规模跨页烟雾案例（各有 page 1、2 片段），不作为推理输入、不据此裁图。没有查看 val/test 结果选规则。
+- 新脚本 `scripts/pack_pubtables_document_images.py` 只读取 `data/pubtables-v2/extracted/Full Documents/train/images/` 的上述完整文档图片，输出新 image-only PDF、页清单和来源 SHA 映射。PDF 页面为原图像素尺寸的一半（points），匹配官方 PDFReader 默认 scale=2；每页无文字层且嵌入 JPEG 字节与原图相同，保持 image-only 赛道。PDF 派生不会修改原图，不使用 GPU。
+- 本地打包/下载器合计 10 测试通过（自建新 basetemp）；包含页序、缺页拒绝、已有目录拒绝及原字节/空文字层检查。服务器打包与 GPU smoke 尚未执行；实际输出、推理耗时、峰值、错误和正式指标均待核验。smoke 不是正式 val 分数。

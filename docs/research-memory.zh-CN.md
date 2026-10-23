@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 Paddle 下一阶段运行中：**独立环境安装后台 `paper-paddle-setup-20261023T081029Z.service`（初始 PID 330647）；PP-DocLayoutV3 四文件已于 08:14:43 UTC 校验下载完成（status=0），新目录 `models/20261023T081029Z-paddle-layout/pp-doclayoutv3/`。计划将 train 两个完整三页文档打包成无文字层 PDF，核验官方 v1.5 页面管线与跨页重组；尚未启动 GPU 推理。代码/环境/日志/固定模型 SHA 见 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md`。不得据安装运行中声称测试成功。
+
 - **2026-10-23 08:06 UTC 下载完成核验：**三个模型主仓库的 50 文件均已下载并通过下载器大小/哈希校验；07:58:19 UTC `end status=0`，service 正常 inactive/dead。当前文件数量/大小及 LFS 哈希记录与官方配置再核对通过，本次未重算全部权重哈希。权重在 `models/20261023T064109Z-public-models/`。未启动新模型推理；下一步是 Paddle 独立环境、额外版面组件和 train smoke，不再重复下载这三个主仓库。详见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
 
 - **2026-10-23 06:42 UTC 三模型后台下载已启动：**代码 `6c58a64`，用户 service `paper-public-models-20261023T064109Z` 为 active/running，PID `3915961`，06:42:43 UTC 开始。新目录 `models/20261023T064109Z-public-models/`，日志 `logs/model-downloads/20261023T064109Z-public-models/`；Paddle LICENSE 首文件已校验，三模型仍待 complete/summary 核验。下载无 GPU、无数据集变更；并未启动模型推理或修改已有 eval312 环境。完整命令/版本/许可见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
