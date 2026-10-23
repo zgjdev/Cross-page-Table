@@ -1,6 +1,6 @@
 # 跨页表格恢复研究长期记忆
 
-最近检查：2026-10-23 09:47 UTC。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
+最近检查：2026-10-23 全量推理启动门禁验收完成。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
 
 ## 每次接手先做什么
 
@@ -9,6 +9,10 @@
 3. 对照本文件“当前状态/下一步”，只以可核验证据更新状态；不根据旧对话推测已完成下载、训练或评估。
 
 ## 当前研究状态
+
+- **2026-10-23 PaddleOCR-VL-1.5 全量技术门禁 READY（未启动）：**最终代码b390273，服务器76相关测试通过、代码复审无阻塞；完整val935/13,871图片/JPEG/模型SHA/依赖/资源只读预检通过，报告 `logs/paddle-launchers/20261023T103500Z/full-val-preflight.json`。最终train四页完整入口pilot已exit0；实际恢复run104000 resumed_documents=1且无新增GPU工作，导出SHA不变并通过三组adapter。原/恢复artifact均保留。用户要求直到可启动，现停在验收点，不冒称val运行中。启动/恢复精确命令及证据在 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`。分支codex/paddle-merge-compat已同步两个远程，未合并main；Linger=no，全登录退出后持续运行需另获系统保活授权。此READY不代表OCRFlux/Popo各自门禁已过。
+
+- **2026-10-23 最终全量门禁验收运行中：**`b390273`分支已同步两个远程，服务器76测试通过；完整val只读预检ready，935/13,871全成员、模型SHA/环境/资源通过，数字页序SHA `1d39ca16b7fcfedf3dabb174c80ef4ae914d90a76a2839617a469c0ba75e90c5`。最终版train pilot `paper-paddle-full-entry-pilot-20261023T103500Z.service`初始PID1304498，输出 `artifacts/paddle-document-runs/20261023T103500Z-paddle-train-pilot/`，完成/实际恢复/导出适配待核验；尚未启动val。Linger=no，不能承诺全部登录断开仍继续，未修改系统设置。见全量readiness文档。
 
 - **2026-10-23 全量入口验收中间检查点：**新增按文档独占输出+checkpoint恢复入口，服务器初版72测试通过；train四页完整入口pilot `20261023T102500Z-paddle-train-pilot`已exit0，未运行val。只读val预检发现固定清单是词法页序，已改为保留原SHA/成员并单列数字页序派生SHA；并修复审查发现的checkpoint原子发布/导出清单再核验，复审无阻塞。最终版服务器回归、pilot恢复及完整val只读预检仍待完成。详见 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`；不可据初版pilot声称已ready或全量运行中。
 

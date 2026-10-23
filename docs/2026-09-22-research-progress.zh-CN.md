@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-10-23 当前优先Paddle模型全量技术门禁READY，尚未启动val。最终76服务器测试及复审通过；完整935/13,871只读预检通过；最终train四页新入口和实际恢复均完成（恢复1文档、无新增GPU、导出SHA一致），导出再次通过三组adapter。代码b390273在codex/paddle-merge-compat，最终文档同步该分支，不改main。用户要求推进到可启动，现达该点；Linger=no导致全会话退出后保活需额外授权。下一步按新RUN_ID启动全量；证据/命令/运维限制见 [全量启动门禁](2026-10-23-paddle-full-validation-readiness.zh-CN.md)。
+
+2026-10-23 最终版门禁检查点：b390273服务器76测试通过，完整val只读预检ready（935/13,871、模型SHA/环境/资源及图片全成员正确）；数字页序派生SHA已留痕。最终版4页train入口pilot已启动，unit/PID1304498与恢复验收待核验；未启动val全量。运维Linger=no边界未擅改，见 [启动门禁](2026-10-23-paddle-full-validation-readiness.zh-CN.md)。
+
 2026-10-23 全量入口阶段检查点：初版72服务器测试通过，完整train四页pilot exit0并产生checkpoint/导出；val只读预检发现词法页序而停止，未启动val GPU。已保留源SHA/成员并新增数字页序清单，补齐checkpoint原子发布与导出SHA重验，独立复审无阻塞；最终回归/pilot恢复/val预检待完成。入口和证据见 [全量启动门禁](2026-10-23-paddle-full-validation-readiness.zh-CN.md)。
 
 2026-10-23 全量门禁扩展：用户要求持续到可启动全量；服务器62回归测试通过。新增train真实负例PMC11626747全4页任务 `paper-paddle-negative-20261023T101200Z.service`（初始PID1156473）已启动，来源/参数/日志见 [Paddle train审计](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。GPU0启动前空余39,607MiB，未改数据或其他进程。下一步核验负例、实现全量按文档恢复及清单预检，val全量尚未启动。
