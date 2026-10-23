@@ -76,6 +76,8 @@ HTML：<https://arxiv.org/html/2512.10888>
 
 这说明续接分类和简单拼接能显著改善软相似度，但没有提高结构和内容完全正确的整表比例。
 
+**2026-10-20 已知跨页片段的隔离实验范围（计划中，非已完成评测）：**固定 PubTables-v2 Full Documents/val 的逻辑表 `parts` 可提供跨页表身份、每片段 `page_num`、页面 JPEG 上的 `bbox` 与整表 HTML；这些 `bbox` 可用于从原页在新目录派生片段图，但 Full Documents 当前本地归档不直接提供逐跨页片段 JPEG，也没有片段内部逐行/逐列的官方真值。另一个集合 `Cropped Tables` 的单表图片不可直接假定是这些 Full Documents 跨页片段。已审计 validation 真实跨不同页表 983 张，见 `docs/experiments/2026-09-29-pubtables-v2-val-cross-page-manifest-audit.zh-CN.md`。向模型提供真值片段框、同表分组及顺序后，评测变成 **oracle 检测/关联条件下的片段图识别与整表恢复**，不是完整文档端到端续接评测；必须分开报告。TATR-v1.1-Pub 可先按既有裁剪表结构识别入口尝试片段推理（输入尺度差异需做 smoke），但本身没有跨页合并模块；POTATR 原生是整页提取器，直接喂紧裁剪片段图的效果待核验，且目前无本地权重；`+ DT` 是附加 PDF 词元的独立输入赛道。所有模型要报告整表得分，仍须实现并冻结合并/行列对齐/重复表头/拆分行处理，且不能用 val 的整表真值或片段框调整规则。此处只读核验原有 `gold-cross-page.jsonl`、两个集合的本地路径及 `parts` 字段，没有生成新裁剪图或模型预测。
+
 ### 3.3 POTATR + cross-page merging
 
 **论文：**Ben Smock 等，**POTATR: A Lightweight Image-to-Graph Model for Page-Level Table Extraction**，arXiv:2606.09788。
@@ -87,6 +89,8 @@ HTML：<https://arxiv.org/html/2606.09788v1>
 POTATR 本身是一个 29M 参数的页面级 image-to-graph 表格提取模型，并不是专门的跨页模型。跨页流水线在 POTATR 页面输出后增加 PubTables-v2 的 ViT-B/16 continuation classifier，并使用简单的纵向合并规则，不重新训练页面模型。
 
 POTATR 论文附录在 PubTables-v2 Full Documents 上报告：
+
+**2026-10-20 输入赛道核验补注：**`POTATR + merging` 表示在逐页结果之后增加 ViT-B/16 续接判断及纵向合并；`POTATR + DT` 表示给 POTATR 页面结构结果分配 PDF 原生文字，论文主表 2 在 Single Pages 上报告它的成绩。两者是不同处理维度，可以组合，不是两个互斥模型。附录 Full Documents 表 5 的 `POTATR + merging` **没有单独注明该行采用 DT 还是哪一种 OCR**；因此不能直接把附录数值归入 `image-only`，也不能认为它就是已验证的 `POTATR + DT + merging`。本项目如复测，应分别固定文字源（OCR/DT）与合并策略；前者分别对应 `image-only + OCR` 与 `PDF-text-assisted`，两赛道结果分开报告，论文对应关系待源码/作者方法核验。依据 <https://arxiv.org/html/2606.09788> §4.3、附录 0.C。
 
 | 设置 | GriTS-Top | GriTS-Con | Acc-Top | Acc-Con | TEDS-S | TEDS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -139,6 +143,10 @@ MinerU-Popo 不是独立的页面图像表格识别器，而是接收不同 OCR/
 这两项工作应列为“相关但不等价”的通用文档解析系统。MonkeyOCR v1.5 明确提出 `Type-Guided Table Merging`，覆盖三种模式：完整表头重复、无表头续接、分页处拆分行；其描述还包括列 schema 对齐、span 冲突处理和表头 token 归一化。PaddleOCR-VL-1.5 的工程管线也包含 cross-page table merging 的后处理能力。
 
 但当前核验到的论文证据主要是能力对比、方法描述和定性案例，没有找到在 PubTables-v2 或公开跨页专用测试集上报告可复核的 `Acc-Con`、跨页子集 TEDS 或局部 merge accuracy。因此它们不能替代 MinerU-Popo、POTATR 或 OCRFlux 的定量结果，也不能据能力宣称已解决跨页表格恢复。它们值得作为后续 image-only/通用 VLM 基线，但前提是冻结版本、输入输出协议和评测集。
+
+**2026-10-20 版本补查（保留上文原调研结论的时间边界）：**PubTables-v2 论文 arXiv:2512.10888v3（PDF 页眉标注 2026-06-02）在 Full Documents 表 5 中额外列出逐页图像模型 `DeepSeek-OCR 2`，以及整篇文档图像输入的 `Claude Opus 4.6`、`GPT-5.4`、`Gemini 3.1 Pro`。逐页组的分数不自动表示模型本身完成了跨页合并；整篇组的闭源 API 结果也不能当作可下载的开源基线。论文的 `PaddleOCR` 行不等于 `PaddleOCR-VL-1.5`，这些新增模型不包含“PaddleOCR-VL-2”。Paddle 官方目前公开命名包含 `PaddleOCR-VL-1.6`；先前四模型计划明确固定 **1.5**，若改测 1.6，须独立审计权重/管线和重定协议，不能静默替换。来源：<https://arxiv.org/abs/2512.10888>、<https://arxiv.org/pdf/2512.10888>、<https://github.com/PaddlePaddle/PaddleOCR>。不同版本表格及数值要独立引用；此处仅补充模型范围，不宣称新增实验已完成。
+
+**同日对用户指认的论文表 3/4 补正：**上段不是用户实际所问的 TATR/POTATR 系列。PubTables-v2 v3 的 `TATR-v1.1-Pub`、`TATR-v1.2-Pub` 属裁剪表结构识别评测（表 3）；`POTATR` 及 `POTATR + DT` 属单页表格提取评测（表 4），其中 `DT` 是 Direct Text（PDF 原生词元辅助），不是新模型权重。`TATR-v1.2-Pub` 是在 1.1 预训练基础上用 PubTables-v2 长/宽裁剪表继续微调，不能把 1.1 权重冒称 1.2；`POTATR` 单独并不解决跨页拼接，完整文档另需续接判别和合并。项目已下载 `checkpoints/tatr-v1.1-pub` 并完成 Cropped Tables/val 的 `PDF-text-assisted` 全量评测；本地没有可确认的 v1.2/POTATR 权重，也未实现其完整文档解析链。论文写未来发布 POTATR 代码/模型并不等于已经找到公开 checkpoint，发布状态后续仍需按官方源核验。依据 <https://arxiv.org/html/2512.10888v3>、<https://arxiv.org/html/2606.09788>、`docs/experiments/2026-09-22-tatr-html-rebuild-rescoring.zh-CN.md`。不得把 Cropped Tables、Single Pages 与 Full Documents 指标直接横比，也不得把 `POTATR + DT` 与 `image-only` 结果混排。
 
 ### 3.7 VCCT
 

@@ -1,6 +1,6 @@
 # 项目研究进度
 
-最后更新：2026-09-30 04:07 UTC
+最后更新：2026-10-23 05:16 UTC
 
 当前分支：`main`（2026-09-30 04:07 UTC 提交前核对；此前记录的分支为历史状态）
 
@@ -29,6 +29,84 @@
 
 ## 3. 状态总表
 
+### 2026-10-23 05:16 UTC 阶段总结与提交前核验
+
+**状态：已有结果只读复核，未启动新实验。**10 月 20 日 dots.ocr 全页预测任务 `events.log` 记录 13,871/13,871 页完成（2 页 `error`）；离线配对评分 `background-events.log` 记录 `END ... status=0`。本轮对其 7 项评分产物重新执行保存的 SHA-256 校验，全部 `OK`。原始成果、数值、不可直接与论文 test 数值比较的原因和下一步详见 `docs/experiments/2026-10-23-cross-page-stage-summary-and-handoff.zh-CN.md`。当前应先在 train 核验 HTML 两层解析的覆盖损失并冻结修复，再新目录复评 val；POTATR 发布制品审计可并行。旧实验指标和历史检查点不变；本次无新 GPU、下载或重评分。
+
+### 3.0q 2026-10-20 12:26 UTC dots.ocr validation 全页终态推理完成
+
+- 2026-10-20 04:14:23 UTC `20261020T015543Z-dots-full-val` 后台任务正常结束（exit 0，unit 后续 `inactive/dead`）。四分片覆盖固定 PubTables-v2 Full Documents/val **13,871/13,871 页**；按预测 schema 逐条解析并与输入清单逐项对照，missing/extra/duplicate 均为 0。`ok=13,869`、历史 `error=2`，有 1,168 页共 1,324 条 `invalid_table_html` warnings；新末段 SHA-256 `0a0a878f636786a3ff7d72dec423f7943668d389b6bffb1f192e036e760a3349` 与后台保存值一致。**这是 image-only 页级终态全覆盖，不是跨页逻辑表恢复成绩**；下一阶段只读审查适配器/错误页处理，在独立目录配对评估 no-merge 与固定简单合并。详细产物、错误 ID 和结论边界见 `docs/experiments/2026-10-20-dotsocr-full-val-last-240-resume.zh-CN.md`。
+
+### 3.0p 2026-10-20 01:55 UTC 最后 240 页断点补跑已启动
+
+- 用户要求继续执行；入口已加入第三段旧预测只读校验，三段 SHA/行数/前缀核验通过，反序分片被拒、151 项回归通过。GPU0 重查空余 39,559 MiB，4 个既有进程；新任务 `20261020T015543Z-dots-full-val` 用户级 service active/running，wrapper/runner PID `946957`/`947020`。原 13,631 页不动，输出/日志写新时间戳目录；**首条新预测待核验、尚无全量结果**。详细输入版本、命令、环境、产物与保护条件见 `docs/experiments/2026-10-20-dotsocr-full-val-last-240-resume.zh-CN.md`。
+- 01:57 UTC 新分片前三页均 `ok`，首条 `PMC12305305_page_0.jpg` 精确接续旧分片；联合四分片 **13,634/13,871 页**、余 237，前缀与 ID 唯一性核验通过。unit 仍 active/running，GPU0 最近余 21,313 MiB，尚无全量页级结果或跨页分数；详细核验见上述实验记录。
+
+### 3.0o 2026-10-20 01:52 UTC GPU0 补跑中断
+
+- 2026-10-19 **17:20:05 UTC**，`paper-dots-full-val-20261017T081912Z.service` 因 GPU0 余量降至 7,589 MiB 触发自身 8 GiB 显存保护，退出码 143、unit failed；**不是仍在运行或已完成**。三分片现累计 **13,631/13,871 页**（98.27%），缺 240 页；全部 JSON 可解析、ID 无重复且严格等于固定清单前缀，新分片 6,844 页均 `ok`，历史 2 页 `error`。第三分片 SHA-256 与后台记录吻合；当前 GPU0 瞬时空余 39,559 MiB，不等于稳定共享窗口。下一步先让恢复脚本接受第三段只读历史输入并验证，再按 GPU 门禁在新目录补最后 240 页，完整覆盖后才做跨页评分。详见 `docs/experiments/2026-10-17-dotsocr-full-val-two-shard-resume.zh-CN.md`。
+
+### 3.0n 2026-10-19 15:19 UTC GPU0 补跑接近完成
+
+- unit `paper-dots-full-val-20261017T081912Z.service` 仍 active/running。三分片 JSON 联合已核验 **13,375/13,871 页**（96.42%），还差 496 页；ID 无重复、严格匹配固定清单前缀。新分片 6,588 页均 `ok`，历史 2 页 `error`；GPU0 最新空余 15,125 MiB，未见结束/保护停机。继续监控并待完整覆盖后审计，**尚无正式跨页评分**。证据见 `docs/experiments/2026-10-17-dotsocr-full-val-two-shard-resume.zh-CN.md`。
+
+### 3.0m 2026-10-19 09:18 UTC GPU0 补跑仍在运行
+
+- 新分片已保存 5,813 页且全部 `ok`；三分片共 **12,600/13,871 页**（90.84%），还剩 1,271 页。联合 JSON 可解析、ID 无重复并严格匹配固定输入清单前缀；unit active/running、GPU0 余 15,125 MiB，尚无 guard/finished 事件。未完成全页覆盖或跨页评分；完整证据见 `docs/experiments/2026-10-17-dotsocr-full-val-two-shard-resume.zh-CN.md`。
+
+### 3.0l 2026-10-18 13:27 UTC GPU0 断点补跑检查点
+
+- `paper-dots-full-val-20261017T081912Z.service` 仍 active/running；三段预测累计 **10,292/13,871** 页（约 74.2%），缺 3,579 页。联合 JSON 可解析、ID 无重复且等于固定清单前缀；第三分片 3,505 页均 `ok`，历史 2 页 `error`。GPU0 约余 16,227 MiB，暂未见保护停机。本轮只读检查、无新增实验启动；无全量跨页评分。详细证据见 `docs/experiments/2026-10-17-dotsocr-full-val-two-shard-resume.zh-CN.md`。
+
+### 3.0k 2026-10-17 08:19 UTC 双分片补跑已启动
+
+- 用户明确要求继续在 GPU0 推理；修复双历史分片恢复入口与后台缺失 `rg` 的监控依赖，严格核验前 6,787/13,871 页清单前缀及两段 SHA，反序分片拒绝，151 项回归通过。08:19:12 UTC 新 ID `20261017T081912Z-dots-full-val` 在 GPU0 用户级 service 启动，wrapper/runner PID `2239841`/`2239881`；启动空余 40,579 MiB，4 个既有进程。首条新预测 `PMC11233398_page_5.jpg` 为 `ok`，联合三分片 **6,788/13,871 页**、无重复、与清单前缀相符、旧分片 SHA 不变；08:22:04 UTC 监控累计数同步，新 GPU0 余量 23,411 MiB。**运行中，未完成全量、无正式跨页指标**。unit、输入/代码哈希、完整命令和监控路径见 `docs/experiments/2026-10-17-dotsocr-full-val-two-shard-resume.zh-CN.md`；`Linger=no`，后续持续核查状态及显存保护事件。
+- 08:26 UTC 后续检查点：第三分片 7 页均 `ok`、清单前缀匹配，累计 **6,794/13,871**、缺 7,077 页；unit 仍 active，GPU0 最近余 23,411 MiB，无保护停机事件。`progress.csv` 按分钟采样，短时可能落后于即时预测文件。详细证据见上述实验记录；**此时仍未完成**。
+- 08:53 UTC 用户询问 VS Code 可否关闭；unit 仍 active/running，新分片已落盘 65 行（合计 6,852/13,871，仅行数检查），`Linger=no`、当时有 7 个用户会话。关闭最后会话可能终止用户级 service，不保证无人值守运行；未更改系统设置或任务。见上述实验记录。
+- 11:09 UTC 新检查点：第三分片 364 条均 `ok`，三分片累计 **7,151/13,871**、剩余 6,720 页，ID 唯一并严格匹配输入清单前缀；unit 仍 active/running，GPU0 最近空余 16,227 MiB，暂无显存保护停机。尚未进行完整跨页评分，继续监控；详细证据见上述实验记录。
+
+### 3.0j 2026-10-17 08:14 UTC 本机 GPU 只读快照
+
+- GPU0/1/2/3 空余显存 40,579/423/25,343/22,761 MiB，瞬时利用率均 0%，计算进程数 4/1/10/10；无独占空卡的证据。补跑 unit 仍 failed，预测仍共 6,787/13,871 页，**无新结果**；本轮只读检查，未启动任务。下次恢复前须修复双分片断点与后台监控，并重新核对共享 GPU 状态。详细快照见 `docs/experiments/2026-10-10-dotsocr-full-val-resume.zh-CN.md`。
+
+### 3.0i 2026-10-12 11:29 UTC 本机 GPU 只读快照
+
+- GPU0/1/2/3 空余显存分别 33,993/423/20,569/22,545 MiB，利用率 60/0/33/59%，四张卡均有计算进程；仅为瞬时快照。此前补跑 unit 仍 failed，两分片共 6,787/13,871 页，无新产物或全量结果。本轮未启动任务；继续运行前须修复两个历史分片的断点入口及后台 `rg` 监控、重新核对资源。详细证据见 `docs/experiments/2026-10-10-dotsocr-full-val-resume.zh-CN.md`。
+
+### 3.0h 2026-10-11 远端服务器 73 候选
+
+- 用户提出迁至 `172.17.62.73`。本机只读 SSH 连接因未知远端 ED25519 主机密钥被严格校验拒绝（exit 255）；本机未见指向该 IP 的可用已配置别名。未验证账号/GPU/数据/模型，未传输、未在远端运行；先通过可信渠道核对主机密钥和账号，再评估迁移可行性。详情见 `docs/experiments/2026-10-10-dotsocr-full-val-resume.zh-CN.md`。
+- 后续用户从已登录远端提供 ED25519 指纹，本机经 `ssh-keyscan` 核对匹配，信任文件仅保存公钥于 `artifacts/ssh-known-hosts/20261011-server73-ed25519`；严格校验已通过。`BatchMode=yes` 连接仍因本机无免交互认证返回 `Permission denied (publickey,password)`；未运行远端 GPU 命令，仍不能断言该机有空卡。未使用/留存密码、未进行迁移或推理。
+- 用户随后在 VS Code 已登录的 73 终端运行 `nvidia-smi`，提供报错 `Unable to determine the device handle for GPU0000:01:00.0: Unknown Error`；这是用户提供的终端证据，不能判断错误根因或其他 GPU 是否可用。当前该机未证实可用，先由用户只读检查 GPU 清单和 PCI 设备，不能直接迁移任务；详见上述实验记录。
+- 用户续传 `nvidia-smi -L`/PCI 输出：5 张 RTX 3090 中 GPU 0/2 报设备句柄错误、PCI revision `ff`，GPU 1/3/4 可列出 UUID、PCI revision `a1`。候选卡仍需核查显存、现有进程及计算能力，不等于可以直接迁移；本机还缺远端免交互登录能力。详情见上述实验记录。
+- 用户随后提供 73 服务器 GPU/进程快照：GPU1/4 分别剩 24,240 MiB，无列出的计算进程；GPU3 剩 21,765 MiB，有 1 个进程占约 2,472 MiB。GPU1/4 可考虑受控短试跑，但旧 A100 增量 16,644 MiB 粗推下会触及现有 8 GiB 空余保护门限，不能直接承诺 3090 全量可行。仍缺远端安全登录、权重/数据/环境检查与双分片恢复脚本修复；未迁移/启动。证据和限制见上述实验记录。
+
+### 3.0g 2026-10-11 05:17 UTC 断点补跑中断与 GPU 快照
+
+- 2026-10-10 08:59:38 UTC 运行 `20261010T024700Z-dots-full-val` 因 GPU0 瞬时空余显存降至 47 MiB 触发自身保护停止，unit 现为 `failed/failed`、exit 143，**并未完成全量**。旧分片 6,151 页、新分片 636 页，共 **6,787/13,871 页**，6,785 `ok`、2 `error`；两分片严格对应清单前缀，重复 0，尚缺 7,084 页。后台环境找不到 `rg`，OOM/连续错误日志检查未可靠执行，重启前必须修正。详细命令、日志、校验和与下一页见 `docs/experiments/2026-10-10-dotsocr-full-val-resume.zh-CN.md`。
+- 2026-10-11 05:17:05 UTC 瞬时只读 GPU 快照：四张 A100 80GB，GPU0/1/2/3 空余分别 32,289/423/25,967/26,163 MiB，利用率分别 54/0/0/0%；四张卡均列有计算进程。GPU0 的显存余量不等于空卡或稳定运行窗口；本次未启动新任务，不终止其他进程。下一步先修复监控依赖，再重新检查资源并在新目录断点补缺，原有输出保留。
+
+### 3.0f 2026-10-10 02:52 UTC 断点补跑运行中
+
+- 原 6,151 页输出及其 SHA-256 保留不变。推理计时改为单调时钟，151 项回归、Ruff、后台脚本语法与断点预检通过。02:50:03 UTC 新 ID `20261010T024700Z-dots-full-val` 已在 GPU0 通过用户级 service 启动（wrapper/runner PID `3225365`/`3225408`），仅补原剩余 7,720 页。02:52:57 UTC 核对首两条新预测均 `ok`、清单前缀续接、无重复，监控累计 **6,153/13,871**（仍缺 7,718 页），unit 仍 active；后续须监控是否中断并联合审计完整覆盖。详细协议、日志和代码哈希见 `docs/experiments/2026-10-10-dotsocr-full-val-resume.zh-CN.md`；无正式全量结果。
+
+### 3.0e 2026-10-10 02:41 UTC 后台全页任务中断勘误
+
+- **2026-10-09 06:54:01 UTC 已失败退出，非正在运行/完成。** 用户级 unit 为 `failed`、退出码 1；原预测 6,151/13,871 页（6,149 `ok`、2 `error`），缺 7,720 页；已保存记录无重复/清单外页、严格符合清单前缀。最后完成页 `PMC11156423_page_9.jpg`，下一个待推理页 `PMC11157072_page_0.jpg`。`elapsed_sec=-27.142` 导致预测模型校验异常；原因分析和 SHA-256 见 `docs/experiments/2026-10-06-dotsocr-full-val-background.zh-CN.md`。先修复计时，再新目录断点补缺，原文件不能覆盖；暂无跨页正式指标。
+
+### 3.0d 2026-10-07 04:12 UTC 后台任务复核
+
+- `paper-dots-full-val-20261006T172527Z.service` 仍 active，runner PID `3946441` 存活。实时预测 955/13,871 页（954 `ok`、1 `error`），现有 955 个唯一 ID 且与输入清单前缀顺序一致，无清单外页；78 页有共 92 条 `invalid_table_html` 警告。错误页 `PMC10293395_page_18.jpg`：`ValueError: layout list contains a non-object element`。GPU0 约剩余 23,423 MiB，未见保护性停止事件。详细证据与速度粗估见 `docs/experiments/2026-10-06-dotsocr-full-val-background.zh-CN.md`；仍在推理，未做跨页合并与正式评分。
+
+### 3.0c 2026-10-06 17:26 UTC 全量后台推理运行中
+
+- PubTables-v2 Full Documents/val 全 935 篇、13,871 页清单 SHA-256 `2782f9ed14bda9858907ae3e6fe43b399c95d6907c64c0b4004b997a9c6e54cd`；后台入口预检、149 项回归通过。首次 `nohup` 尝试 `20261006T172221Z-dots-full-val` 未进入推理，保留空日志。2026-10-06 17:26:41 UTC 以用户级 systemd 新 ID `20261006T172527Z-dots-full-val` 成功启动，unit active，wrapper/runner PID `3946380`/`3946441`，GPU0 启动余量 48,737 MiB、4 个原有进程。运行中，首批预测和最终指标仍待核验；次日检查方式、日志和失败证据见 `docs/experiments/2026-10-06-dotsocr-full-val-background.zh-CN.md`。
+- 17:27:46 UTC 首条预测 `status=ok` 刷盘；截至 17:29:22 UTC 2/13,871 页、均 `ok`，`progress.csv` 已按分钟追加检查点，GPU0 约 31 GiB 剩余，unit 仍 active。登录管理器显示 `Linger=no`，若所有用户会话消失，后台 service 可能随之退出；保存的逐页预测可按新目录断点补跑，不保证自动重启，也不代表全量成绩。
+
+### 3.0b 2026-10-06 17:15 UTC GPU 短试跑完成
+
+- 用户要求测试；2026-10-06 17:11:59--17:15:13 UTC 在共享 GPU0 运行 `PMC11977379` 完整 3 页 dots.ocr `image-only` smoke，PID `3837378`，退出码 0。3/3 页 ok、0 错误、0 警告、1 张页级表；峰值占用 48,946 MiB（相对启动前增量 16,644 MiB），结束后回到原有显存占用。与旧 smoke 的原始输出一致，但不表示跨页逻辑表已恢复；完整日志与哈希见 `docs/experiments/2026-10-06-dotsocr-full-documents-gpu0-smoke.zh-CN.md`。未启动全 validation，下一步是更长完整文档的资源核验及共享 GPU 运行窗口评估。
+
 ### 3.0a 2026-09-30 04:07 UTC 提交前检查点
 
 - 本轮只准备提交已有研究代码与文档：全量测试 149 项通过；11 个新增 Python 文件的 Ruff check/format 通过，`git diff --check` 通过；测试临时目录为 `artifacts/test-runs/20260930-precommit-full-01/`。
@@ -49,8 +127,8 @@
 | dots.ocr / Cropped Tables full validation | 计划中，未启动 | 0/13,384（严格全量） | 尚无正式全量指标 |
 | dots.ocr / Full Documents smoke | 已完成 | 1 文档、3/3 页 | 包含无表页；未做跨页合并；仅用于流程验证 |
 | dots.ocr / Full Documents 历史筛页运行 | 已完成，但协议不符合当前严格定义 | 935 文档、3,522/13,871 页 | 仅真值表格所在页；未做跨页合并；指标不可与严格全页结果直接等价比较 |
-| dots.ocr / Full Documents strict full validation | 计划中，未启动 | 0/13,871（严格全页） | 尚无正式严格全页指标 |
-| continuation 与跨页合并基线 | 未开始 | — | 待两个页面抽取基线证据链稳定后单独设计 |
+| dots.ocr / Full Documents strict full validation | 页级推理及 `no_merge`/`simple_merge` 配对离线评分已完成；解析有效性待审计 | 935 篇、13,871/13,871 页（2 页 error）；跨页真值 983 张 | `simple_merge` 跨页 GriTS-Con 0.5131445386、全表 GriTS-Con 0.5479001476；不等同论文 test 同协议复现 |
+| continuation 与跨页合并基线 | 简单规则配对结果已完成，论文 ViT 与其他模型待核验 | 1,213 个规则候选，155 次接受，正确性待审计 | 只可说明同一上游下的简单规则增量；误连率尚缺 |
 
 ## 4. TATR-v1.1-Pub 正式全量结果
 
@@ -204,3 +282,44 @@
 **状态：只读核验及计划纠偏，未启动 GPU 或全量推理。**先前把“尚无真实 train 预测、无法验证简单拼接误连率”误当成 dots.ocr 页级全量推理的前置限制。实际上本地权重 `checkpoints/dots-ocr/` 和 validation 13,871 页全页 manifest 均已存在；完整清单 SHA-256 `2782f9ed14bda9858907ae3e6fe43b399c95d6907c64c0b4004b997a9c6e54cd`。**可以先按全页输入做 dots.ocr image-only 推理；后续再配对复评 no-merge 与简单拼接。**研究上对真实 train 负例审计的缺口仍在，但不阻止保存未筛页的模型输出。
 
 2026-09-29 10:20 UTC 的 `nvidia-smi --query-gpu`/`--query-compute-apps` 只读快照：GPU 0/1/2/3 空余显存分别约 48,737/423/11,033/13,321 MiB；GPU 0 上有 4 个 compute 进程，其他卡亦已有进程，GPU 3 利用率 100%。这不是独占许可或未来运行窗口。启动前须再次核查进程/显存并确认共享使用不会干扰既有任务，先做短显存标定；按完整文档拆互斥新分片，写入独立预测、日志、PID/命令/环境、输入及输出 SHA 和恢复清单。没有达成资源门禁时只准备离线任务，不抢占或终止他人进程；目前**无全量模型分数**。
+# 2026-10-20 12:36 UTC：dots.ocr 严格 Full Documents/val 离线评分后台接管
+
+**运行中，尚无正式指标。**模型 `rednote-hilab/dots.ocr`（`image-only`，revision `c0111ce6bc07803dbc267932ffef0ae3a51dc951`）；固定 PubTables-v2 Full Documents/val 935 篇、13,871 页。四段预测严格适配完整、无缺漏或重复，2,752 张未合并预测表，历史推理 error 2 页。交互评分在产物生成前中止（退出 130），随后新用户级 service `paper-dots-eval-20261020T123212Z.service` 于 12:35:55 UTC 启动，PID `1269023`；依次执行 no-merge 评分、冻结的重复表头简单合并、配对评分，仅 CPU、不下载、不覆盖旧产物。当前 `Linger=no`，不能保证全部登录会话退出后 user service 继续；启用系统级 linger 尚待明确授权。完整输入/命令/日志/状态见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md`；运行完毕必须核验两份 metrics、覆盖与 SHA，追加本索引和记忆页的结果。
+
+## 2026-10-20 12:46 UTC：PubTables-v2 论文版本与候选模型补查
+
+**文献核验，不是模型实验。**PubTables-v2 arXiv:2512.10888v3 Full Documents 表 5 新列出 `DeepSeek-OCR 2`（逐页输入）与 `Claude Opus 4.6`、`GPT-5.4`、`Gemini 3.1 Pro`（整篇输入）。论文 `PaddleOCR` 行并非项目四模型计划的 `PaddleOCR-VL-1.5`，没有由此得到 `PaddleOCR-VL-2` 基线；Paddle 官方已有 `PaddleOCR-VL-1.6` 命名，但不得将四模型计划中的 1.5 静默替换。版本说明和官方来源已追加至 `docs/reports/2026-09-25-cross-page-table-fragment-reconstruction-methods-and-results.zh-CN.md`。MinerU-Popo 仍为固定页面解析输出上的后处理方案；未下载/测试这些额外模型。
+
+**同日纠正用户原意：**上述表 5 的新模型并非用户指的 PubTables-v2 表 3/4 的 `TATR`、`TATR-v1.1-Pub`、`TATR-v1.2-Pub`、`POTATR` 与 `POTATR + DT`。TATR 结构识别输入裁剪表，POTATR 单独输入完整单页；`+ DT` 只是 PDF 原生文字辅助条件，并非第五个独立权重。项目内仅 v1.1 权重已下载且在 Cropped Tables/val 完成严格复评；其余权重/完整文档适配尚未核验。来源及结论边界见同一报告新增的同日补正，不把论文报告分数误记成已实测。
+
+**同日补充诊断轨道（计划中，无新计算）：**只读检查 Full Documents/val 真实跨页逻辑表的 `parts`，存在页面号及 bbox、整表 HTML，但本地没有对应的单独跨页片段 JPEG 或官方片段内行列真值；`Cropped Tables` 是另一集合，不能当作这些片段。可固定预处理，从原页派生片段裁剪，并在真值已给定片段及同表分组的条件下对 TATR-v1.1-Pub 做 smoke，然后外接冻结的合并器按整表真值评估；POTATR 原生整页和权重尚待核验。此轨道是 oracle 检测/关联下的片段恢复，不等于当前完整文档端到端分数。证据和限制见 `docs/reports/2026-09-25-cross-page-table-fragment-reconstruction-methods-and-results.zh-CN.md` §3.2、`docs/experiments/2026-09-29-pubtables-v2-val-cross-page-manifest-audit.zh-CN.md`；原始数据/旧产物未修改。
+
+**POTATR 文字源与跨页组件澄清：**论文 `POTATR + merging` 是全文档跨页处理配置，`POTATR + DT` 是使用 PDF 原生文字的页面配置，二者不是二选一，也非两个独立权重。Full Documents 附录的 `POTATR + merging` 行没有明确写出 DT/OCR 来源，不能据该表把 `0.8269` 直接归入本项目 image-only，或声称已经证实 DT 与 merging 同用。方案拟设 OCR 与 DT 两条文字源赛道，分别评 no-merge/merge；原论文配置归属继续待核验。勘误入口为上述报告 §3.3；无新模型结果。
+
+## 2026-10-20 13:09 UTC：POTATR 加入端到端候选方案
+
+**状态：计划调整，不是 POTATR 下载/实验启动。**新执行入口 `docs/2026-10-20-cross-page-five-method-evaluation-plan.zh-CN.md`，原 `docs/2026-09-29-cross-page-four-model-evaluation-design.zh-CN.md` 保留原历史版本及通用 GPU/数据安全门禁，并在文件头指向新版。新增 POTATR 作为全页图像提取上游，计划固定同一页面预测做 no-merge/simple-merge paired 对照；如 ViT 续接器权重/版本可核验再单列论文式续接合并，文字源按 image-only + OCR、PDF-text-assisted + DT 两赛道独立报告。POTATR 权重、作者代码和 ViT 发布状态尚未正式核实为可运行，本地未找到 POTATR checkpoint；不能用 TATR 假扮或称已经开始 POTATR 实验。当前先完成 dots CPU 后台两组评分，同时只读核验 POTATR 官方制品；之后才开发 adapter、train smoke、显存门禁、val 全页。PubTables-v2 已知跨页片段裁剪图作为单列 oracle 诊断，不污染完整文档主赛道。无下载、GPU 推理或原有预测/日志修改。证据、执行门槛及失败分叉全部记录于新版计划。
+
+### 同日 13:12 UTC dots.ocr 无合并评分子阶段完成
+
+后台 unit 仍运行，`background-events.log` 已转至 `STEP repeated_header merge`；无合并 `metrics.json` 的全页 coverage=13,871、cross-page GT=983、matched=643，cross-page GriTS-Con=`0.4576991966`、内容网格 exact=`0.0`，full-document GriTS-Con=`0.5077936893`、内容网格 exact=`0.0815616544`；非法 HTML 637。matched 只表示部分内容重叠，全部 643 项都缺预测来源页；不能称 643 张表成功恢复，网格 precision 也不是检测 precision。SHA `ba5e206bb7ac3d4c091d53eea29bc66c2740b6ab6f4de78c63c6d46e22bdff02`，详细 coverage、日志与产物路径见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md`。**仅无合并子阶段完成；简单合并/第二次评分、全套 hash 核验待完成，不报告 paired 增益。**
+
+### 同日 13:17 UTC 简单合并子阶段完成
+
+后台仍 active/running，已切换至 `STEP simple_merge score`。`artifacts/cross-page-merges/20261020T123212Z-dots-full-val-offline-simple-merge/summary.json` 记录候选边界 1,213、规则接受 155、表格由 2,752 变成 2,597；**接受数不是合并正确数**，误连及配对差异仍待第二组评分和人工/负例审计。该 summary SHA-256 `0a6ae6ae494b3fdd7b32dd2f2267ad2b960a319b4f6d486bb202b360a9a254c6`，详细日志/来源见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md`。未下载/修改原始数据，也未启动 POTATR GPU。
+
+### 同日 13:27 UTC 社交平台候选方法筛选
+
+**文献筛选已完成第一篇，第二篇待核验；没有新增实验。**微信文章中的 TeleOCR 官方论文、代码和公开模型卡可核验，但只支持将其作为 image-only **可选页级解析上游**；暂无依据作为独立跨页续接/逻辑表恢复模型列入五方案，也不能将 OmniDocBench 页面解析成绩混入 PubTables-v2 跨页成绩。小红书公开链接未提供可核验笔记正文，未确认论文/模型，须请用户提供截图或名称。公开来源、证据边界和可选扩展条件见 `docs/experiments/2026-10-20-social-posts-teleocr-baseline-audit.zh-CN.md`。现行五方案不变；dots CPU service 最近只读检查仍处 `STEP simple_merge score`、`active/running`，无第二组分数，不改变其独立实验记录。
+
+### 同日 13:59 UTC dots.ocr 严格全量配对评分完成
+
+**已完成，旧“运行中”段落保留为历史检查点。**后台 `END 2026-10-20T13:48:59Z status=0`，unit `inactive/dead`，两组 13,871 页全覆盖、983 张跨页真值；`background-checksums.sha256` 7 项全通过。`no_merge` → 冻结 `simple_merge` 跨页 GriTS-Con `0.4576991966` → `0.5131445386`，跨页内容网格 exact `0` → `2/983`；匹配数 `643` → `639`，因此不能只报提升。155 次规则接受不能视为 155 次正确续接。全表 GriTS-Con `0.5077936893` → `0.5479001476`；错误页 2、非法 HTML 637。命令、完整数值、SHA 和结论边界见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md` 完成核验。下一步只读配对案例审计、train 正负例误连核验，且并行核验 POTATR 作者权重/许可/续接器；不以 val 调规则，无新 GPU 任务。
+
+### 同日 15:50 UTC 原论文结果与本地指标范围核查
+
+**对先前口头比较的勘误，不改原实验结果。**原论文根目录 PDF 表 7 的 dots.ocr `0.6844/0.1180` 是 Full Documents test **全部表**的 GriTS-Con/Acc-Con，合并器为 ViT-B/16 预测续接、同列数纵向拼接；本地全表 validation 简单合并为 `0.5479001476/0.0819482026`，跨页子集内容网格 exact `2/983` 不可对照论文全表 `0.1180`。两套全表分数仍有差距，但不同 split/续接器/推理或解析策略尚未控制；本地 637 条 HTML 评分无效亦需归因检查。PDF 页码、代码路径、失败样本和先 train 后 val 的核验步骤见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md` 新增 15:50 核查段；未启动重评分、GPU 任务或 test 评测。
+
+### 同日 15:56 UTC dots 推理/评价链路只读核验
+
+**存在应优先解决的有效性风险，旧结果不改。**val 真值 2,587 表；本地两层 HTML 处理依次记录 1,324 个 runner warnings、adapter 2,752 预测表中再有 637 条被 XML 解析拒绝（520 标签不匹配、99 非法字符、12 多根、6 未知实体），最终参与评分 2,115 张预测表。解析规则可能导致正常 HTML 被跳过，影响分数的大小仍未确定。full_document Hungarian + micro GriTS/格子 exact 未发现已证实聚合公式 bug，但 cross_page 自定义 Con 匹配后只取 GT 子集，`Top` 沿用 Con 匹配、未对全部假阳性处罚，source_pages 不参与 grid exact；不得与论文全表直接对比，亦不能称 2/983 已核实续表正确。先在 train 核验解析/预测格式与官方代码，冻结统一规则后在新目录复评 val，ViT 官方合并器未复现。只读统计、代码入口和边界详见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md` 15:56 段。

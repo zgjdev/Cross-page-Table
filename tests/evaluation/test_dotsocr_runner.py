@@ -14,6 +14,7 @@ from cptla.evaluation.dotsocr import (
     scan_prediction_file,
 )
 from cptla.evaluation.pubtables_v2 import ImageManifestEntry
+from scripts.evaluate_dotsocr_pubtables_v2 import elapsed_seconds
 
 
 def _entry(image_id: str) -> ImageManifestEntry:
@@ -87,3 +88,27 @@ def test_corrupt_output_requires_a_new_recovery_shard(tmp_path: Path) -> None:
     with pytest.raises(CorruptPredictionTailError, match="--resume-from"):
         require_appendable_output(damaged)
     assert completed_ids_from_files([damaged]) == {"PMC1_table_0.jpg"}
+
+
+def test_elapsed_seconds_ignores_wall_clock_rollback(monkeypatch: pytest.MonkeyPatch) -> None:
+    import scripts.evaluate_dotsocr_pubtables_v2 as runner
+
+    monkeypatch.setattr(runner.time, "time", lambda: -1000.0)
+    monkeypatch.setattr(runner.time, "monotonic", lambda: 111.25)
+    assert elapsed_seconds(100.0) == 11.25
+    for status in ("ok", "error"):
+        PredictionRecord(
+            image_id="PMC1_page_0.jpg",
+            unit_id="PMC1",
+            status=status,
+            tables_html=[],
+            elapsed_sec=elapsed_seconds(100.0),
+            error="failed" if status == "error" else None,
+        )
+
+
+def test_elapsed_seconds_never_becomes_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    import scripts.evaluate_dotsocr_pubtables_v2 as runner
+
+    monkeypatch.setattr(runner.time, "monotonic", lambda: 99.999)
+    assert elapsed_seconds(100.0) == 0.0

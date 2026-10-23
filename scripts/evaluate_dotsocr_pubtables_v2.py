@@ -29,6 +29,10 @@ element's bbox, its category, and the corresponding text content within the bbox
 """
 
 
+def elapsed_seconds(started: float) -> float:
+    return max(0.0, round(time.monotonic() - started, 3))
+
+
 def load_manifest(path: Path) -> list[ImageManifestEntry]:
     entries = [
         ImageManifestEntry.model_validate_json(line)
@@ -88,7 +92,7 @@ def main() -> int:
     with args.output.open("a", encoding="utf-8", newline="\n") as stream:
         for index, entry in enumerate(pending, start=1):
             image_path = args.images / entry.relative_path
-            started = time.time()
+            started = time.monotonic()
             try:
                 messages = [
                     {
@@ -130,7 +134,7 @@ def main() -> int:
                     unit_id=entry.unit_id,
                     status="ok",
                     tables_html=tables,
-                    elapsed_sec=round(time.time() - started, 3),
+                    elapsed_sec=elapsed_seconds(started),
                     raw_output=output,
                     warnings=warnings,
                 )
@@ -140,7 +144,7 @@ def main() -> int:
                     unit_id=entry.unit_id,
                     status="error",
                     tables_html=[],
-                    elapsed_sec=round(time.time() - started, 3),
+                    elapsed_sec=elapsed_seconds(started),
                     error=f"{type(error).__name__}: {error}",
                 )
             stream.write(record.model_dump_json() + "\n")
