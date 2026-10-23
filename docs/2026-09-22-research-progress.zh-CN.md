@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-10-23 09:51 UTC：Paddle 两个 train 案例未合并原因定位为官方 block 与关键词读取的字段契约不匹配；仅 CPU 内存桥接后两例触发合并，原结果未改，尚无正确率或误连结论。推荐官方原版和独立兼容修正版分开报告，连同严格来源页 adapter 设计待确认；未启动全量、未新增 GPU/下载。证据与下一阶段选择见 [Paddle 官方合并契约审计](experiments/2026-10-23-paddle-native-merge-contract-audit.zh-CN.md)。
+
+2026-10-23 09:47 UTC（北京时间 17:47）：只读核验 Paddle 环境安装及 train GPU smoke 均已 exit 0，任务不再运行；09:15–09:19 UTC 处理 2 文档/6 页共 220.57 秒，missing/extra/duplicate=0，4 个页面表 HTML 格式检查通过。两文档 no_merge/native_merge 相同，未触发官方合并，不能冒称完整跨页恢复成功。最低空余显存 34,103 MiB。下一步核验官方合并判据/来源页及评分 adapter，尚未启动全量 val 或产生正式分数。证据、SHA 与限制见 [Paddle 环境与 smoke](experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md) 的完成核验段。
+
 2026-10-23 08:25 UTC：服务器生成并审计完成 2 文档/6 页 image-only PDF；13 项相关测试、bash 语法通过。有限后台 `paper-paddle-smoke-20261023T082900Z.service`、初始 PID 422511 已启动，目前 `WAIT_SETUP`，等独立环境安装完成后自动做官方页面预测与两组跨页重组；GPU 推理与新分数仍未确认。日志/命令/版本与限制见 [Paddle 环境与 smoke](experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md)。
 
 2026-10-23 Paddle 执行检查点：独立新环境后台安装运行中，PP-DocLayoutV3 四文件在 08:14:43 UTC 全部校验下载完成；两份 train 完整三页文档拟生成 image-only PDF 进行官方管线与跨页重组 smoke。本地输入打包/下载器合计 10 测试通过；尚无 GPU 推理或新分数。PID、命令、模型 SHA、日志和输入审计见 [Paddle 环境与 smoke](experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md)。

@@ -1,6 +1,6 @@
 # 跨页表格恢复研究长期记忆
 
-最近检查：2026-10-23 05:16 UTC。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
+最近检查：2026-10-23 09:47 UTC。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
 
 ## 每次接手先做什么
 
@@ -9,6 +9,10 @@
 3. 对照本文件“当前状态/下一步”，只以可核验证据更新状态；不根据旧对话推测已完成下载、训练或评估。
 
 ## 当前研究状态
+
+- **2026-10-23 09:51 UTC Paddle 合并原因已核验：**两个 train 案例宽度/列数/边界行均通过，但续页 `figure_title` 的 Continued 被拒；PaddleX 3.4.1 合并器关键词分支读 `.text` 等字段，实际 block 文字保存在 `.content`。原类/原合并器 CPU 内存复现拒绝，仅桥接 text=content 则两例触发合并，原文件哈希不变。不是模型没识别出标题，也不代表合并网格正确。尚未修改官方包/实现补丁/评分 adapter 或启动全量。建议保留原官方基线并单列 content-compatible 修正版；设计待确认，详见 `docs/experiments/2026-10-23-paddle-native-merge-contract-audit.zh-CN.md`。
+
+- **2026-10-23 09:47 UTC Paddle GPU smoke 完成核验：**自动任务已于 09:15–09:19 UTC（北京时间 17:15–17:19）运行完 2 文档/6 页，220.57 秒，安装与 smoke 均 exit 0、inactive/dead；缺失/额外/重复为 0，4 个 table HTML 均格式可解析。两份文档 no_merge/native_merge 完全相同，官方合并没有触发；这是 train 小规模可运行性验证，不是正式跨页分数或恢复成功。GPU 0 最低空余 34,103 MiB；当前推理已结束，无需重跑。下一步核验官方合并条件/来源页与评分适配，尚不能直接声称全量门禁通过。本轮只读核验，未启动全量或新任务，详细证据/产物 SHA 见 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md` 完成段。
 
 - **2026-10-23 08:25 UTC Paddle train smoke 后台入口已启动：**`paper-paddle-smoke-20261023T082900Z.service`、初始 PID 422511，当前 `WAIT_SETUP`，不是已开始推理；安装完成后自动执行 2 文档/6 页 native 管线与 no_merge/native_merge。输入 PDF 已在服务器生成并审计，13 项相关测试通过。launcher 日志 `logs/paddle-launchers/20261023T082900Z/smoke.log`；下一步先核验安装与 smoke 实际终态/来源页、HTML/耗时，不直接启动全量。完整记录 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md`。
 

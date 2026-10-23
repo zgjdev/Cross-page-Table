@@ -46,3 +46,24 @@ CPU 源码审计确认 PaddleX `PADDLE_PDX_CACHE_HOME` 可重定向缓存，nati
 待启动的有限后台入口（不是定期监控）为 `bash scripts/run_paddle_v15_smoke_after_setup.sh 20261023T082900Z-paddle-train-smoke`；等指定安装任务产生 `setup-complete.json` 才执行。如安装失败即退出；GPU 启动门槛空余 ≥20,000 MiB，逐页/文档检查低于 8,192 MiB 安全退出，不终止其他进程。5 秒 GPU 采样为整卡状态，不能冒称本进程峰值。输出 `outputs/baselines/paddleocr-vl-1.5/20261023T082900Z-paddle-train-smoke/`，实验日志/cache/config/manifest 在对应 `logs/baselines/paddleocr-vl-1.5/`。所有 cache/TMP 均在新项目子目录，不新增外部文件访问。安装后 CPU/GPU 实际兼容性、6 页覆盖、官方合并输出契约仍待验证；没有全量评测或正式分数。
 
 实际启动：**08:25:17 UTC**，用户 unit `paper-paddle-smoke-20261023T082900Z.service`、初始 PID `422511`、active/running，日志 `logs/paddle-launchers/20261023T082900Z/smoke.log` 当前为 `WAIT_SETUP`。服务器 13 项相关测试、bash 语法检查通过；入口 commit `49f158c` 已同步 GitHub 与服务器 main。此时环境仍在安装，不把 waiter 的 active/running 解释成 GPU 推理已启动。缓存补充显式 `CUDA_CACHE_PATH` 与 `PPNLP_HOME`，避免驱动/JIT 或 NLP 的默认外部目录。
+
+## 2026-10-23 09:47 UTC（北京时间 17:47）完成后只读核验
+
+**已提供：独立环境安装和 train GPU smoke 已完成，不再是 WAIT_SETUP。**用户询问是否能开始 GPU 推理，本轮未重复启动任务、未启动全量 val、未修改服务器文件。安装日志末尾 `No broken requirements found`；安装与 smoke 两个 unit 均 `inactive/dead`、`ExecMainStatus=0`。原自动任务已运行真实 GPU 推理，页面处理从 **09:15:33 到 09:19:13 UTC（北京时间 17:15–17:19）**；`summary.json` 为 `completed`，6 页共 220.57 秒（不包括安装和模型初始化）。实际代码 commit `2ceceb9`。
+
+- `pages.jsonl` 逐行 JSON 检查通过；与 packing manifest 对账 **6/6 页，missing/extra/duplicate=0，顺序一致**，预测 width/height 与原图逐页相同。两份派生 PDF 当前 SHA 与原 manifest 相同。
+- 每文档输出两个非空 table block，共 4 个页面表片段；两组 HTML 均通过 `xml.etree.ElementTree.fromstring` 检查（每组 4/4）。仅证明格式可解析，不是结构/文字正确率，也不是逻辑表恢复成功率。
+- 两文档 `no_merge.json` 与 `native_merge.json` **逐对象完全相同**；table 的 `global_group_id` 均等于自身 `global_block_id`。两个案例未触发官方合并，不能称跨页恢复成功；原因待核验，不能仅据此判定模型没有跨页能力。train 案例不代替正式 val 结果。
+- GPU 0 采样 47 次、最低空余 **34,103 MiB**，最高整卡占用 46,936 MiB，启动前整卡占用 41,432 MiB。共享卡差值不能作为严格的本任务峰值。检查时 GPU 0 回到空余 39,607 MiB、利用率 0%，smoke 已结束。
+- 下一步核验官方合并判据和跨页来源页映射、实现/验收评分适配，再准备可恢复的完整 validation 分片。GPU 基础环境已验证可运行，但全量门禁尚未全部通过；不为提高 train 样例成功数擅自改官方合并器。无正式分数，无新下载或数据更改。
+
+核验方法：读取两个 unit 状态及 launcher 日志；在 eval312 中逐行解析 JSON，按 `(document_id,page_index)` 与 packing manifest 对账、核对维度及 PDF SHA，解析两组 table HTML、比较完整官方输出对象，聚合 `gpu-samples.jsonl`。全部只读。
+
+核验时计算的 SHA-256，产物前缀为 `outputs/baselines/paddleocr-vl-1.5/20261023T082900Z-paddle-train-smoke/`，日志前缀为同 run 的 `logs/baselines/paddleocr-vl-1.5/`：
+
+| 文件 | SHA-256 |
+| --- | --- |
+| 产物 `summary.json` | `a52e3ce73cc03a5e20e397195bfe93c181891d9823ff2cb11f4dff540739d8a1` |
+| 产物 `pages.jsonl` | `791705c3bc866b008f96f3e5ffcee25e2f5af0c9ad257f946bd18987b23e6370` |
+| 日志 `run-manifest.json` | `e12aa52c26d1ae319184efb94c67d500c3b6729b82154d0b50f38a20f7c209ce` |
+| 日志 `pipeline-config.yaml` | `8e6536d0f224065d63e4a537c48097501c0c456d47b4da63be93703b5f7ab843` |
