@@ -49,6 +49,7 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=False)
     counts = Counter()
     buckets = Counter()
+    details = Counter()
     tags = Counter()
     seen = set()
     accepted_ids = set()
@@ -76,6 +77,7 @@ def main():
                         continue
                     value = element.get("text")
                     record = {"image_id": image_id, "layout_index": index, **diagnose_html(value)}
+                    record["layout_keys"] = sorted(element)
                     entry = evidence.get((image_id, index))
                     accepted = entry is not None
                     record["runner_accepted"] = accepted
@@ -106,9 +108,19 @@ def main():
                     bucket = f"{stage}/{kind}"
                     record["bucket"] = bucket
                     buckets[bucket] += 1
+                    details[f"{stage}/input_type/{record['input_type']}"] += 1
+                    details[f"{stage}/xml_error/{record.get('xml_error')}"] += 1
+                    details[f"{stage}/table_count/{record.get('table_count')}"] += 1
+                    if not accepted:
+                        if "text" not in element:
+                            details["runner_rejected/missing_text_key"] += 1
+                        for key, item in element.items():
+                            if key != "text" and isinstance(item, str) and "<table" in item.lower():
+                                details[f"runner_rejected/alternative_html/{key}"] += 1
+                    sample_bucket = f"{bucket}/{record.get('xml_error')}/{record['input_type']}"
                     output.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    if len(samples[bucket]) < 3:
-                        samples[bucket].append({**record, "original_html": value})
+                    if len(samples[sample_bucket]) < 3:
+                        samples[sample_bucket].append({**record, "original_html": value})
     if seen != manifest or accepted_ids != set(tables):
         raise ValueError("manifest/adapter coverage mismatch")
     if counts["runner_rejected"] != counts["runner_warnings"]:
@@ -129,13 +141,14 @@ def main():
         "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "counts": dict(counts),
         "buckets": dict(buckets),
+        "details": dict(details),
         "pages_runner_rejected": len(rejected_pages),
         "pages_score_rejected": len(failed_pages),
         "pages_both_rejections": len(rejected_pages & failed_pages),
         "score_rejected_tag_counts": dict(tags),
         "inputs_sha256": before,
         "inputs_unchanged": True,
-        "sample_policy": "first three per diagnostic bucket in fixed shard/layout order",
+        "sample_policy": "first three per stage/syntax/XML-error/input-type bucket in shard order",
         "limits": "No GT read. Lexical probe is diagnostic, not validated normalization or score.",
         "outputs_sha256": {p.name: digest(p) for p in args.output_dir.iterdir()},
     }
