@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 HTML 审计准备：**用户授权直接操作服务器推进下一步。新增 CPU 两层过滤审计脚本，旧输入只读、确定性分桶抽样、输入前后哈希对账；服务器执行与结果待核验。无新模型指标，未改评分协议。详见 `docs/experiments/2026-10-23-dotsocr-html-filter-audit.zh-CN.md`。
+
 - **2026-10-23 阶段交接（无新实验）：**已重新核对 dots.ocr 全量推理的结束日志（13,871/13,871 页）与离线评分结束日志（`status=0`）；7 项评分产物 SHA-256 复核全 `OK`。已将进度总表中过期的“断点补跑中/合并未开始”修正为**页级推理及配对评分已完成、解析有效性待核验**。成果、边界与下一步集中记录于 `docs/experiments/2026-10-23-cross-page-stage-summary-and-handoff.zh-CN.md`；原结果不变。下一项优先 CPU 审计两层 HTML 过滤，train 上冻结修正规则，旧预测新目录复评 val；并行只读核验 POTATR 制品，未经 GPU 门禁不启动新全量任务。
 
 - **2026-10-20 15:56 UTC dots 评测链路风险确认：**val 真值 2,587 表；自定义提取器有 1,324 条 HTML 警告；adapter 留下 2,752 张表，XML 严格解析再剔除 637，真正评分 2,115 张。637 错误只读分类：标签不匹配 520、非法字符 99、多根 12、未知实体 6，未归因到模型 vs 解析策略。全表 GriTS 聚合使用 vendored evaluator，未见已证实公式 bug；自定义 cross_page 按 Con 先匹配再抽 GT 子集、不对额外预测罚 precision，cross Top 复用 Con 匹配；2/983 格子 exact 不验证来源页。先按 train/官方管线冻结 HTML 处理、prompt 和合并协议，再在**新目录**复评 val；不得修改旧指标或混称论文同协议。详见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md` 15:56 段。
