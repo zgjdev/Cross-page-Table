@@ -1,6 +1,6 @@
 # 项目研究进度
 
-2026-10-23 补充检查点：开始准备 dots.ocr 两层 HTML 过滤 CPU 审计，服务器运行待完成，无新评分/训练结果。记录见 [HTML 过滤审计](experiments/2026-10-23-dotsocr-html-filter-audit.zh-CN.md)。
+2026-10-23 06:06 UTC 补充检查点：dots.ocr 两层 HTML 过滤 CPU 审计已完成。637 张评分拒绝中 582 为词法兼容候选、55 未解决；前层拒绝中 1,315 条无 text，涉及 1,159 页且原串无任何文字/表格 HTML。拒绝页面集合无交集；全部输入哈希不变，53 项相关测试通过。没有新评分/训练结果，规范化与缺内容推理原因仍待在 train 核验。命令、案例、边界和产物见 [HTML 过滤审计](experiments/2026-10-23-dotsocr-html-filter-audit.zh-CN.md)。
 
 最后更新：2026-10-23 05:16 UTC
 
