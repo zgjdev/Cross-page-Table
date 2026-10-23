@@ -68,3 +68,17 @@ PYTHONPATH=src:third_party/grits-main:artifacts/runtime-deps/20261023T100100Z-pa
 - compat `metrics.json`：`e44ca5a58ebf686eb82308fccd96e88eaf351614ef0d51d618affa36c9510796`。
 - compat `matches.jsonl`：`98c8816d7884bc3c11c03c7b43a58effcc24dac2fece8d9c07fa506710141fb8`。
 - `run-summary.json`：`f09e40855715f56d71d5c691e15eade6086f8c0676b9c769bca795473fcfc8d1`。
+
+## 新增要求与负例任务启动
+
+用户要求持续推进到全量可启动。服务器追加CLI端到端/原版回放异常测试后，共62相关测试通过。独立只读代码审查无Critical/Important；未合并main，分支仍为codex/paddle-merge-compat。
+
+只在train筛选完整2–4页文档，官方label=0的页面两侧均有表片段且逻辑表ID不重叠，选得PMC11626747（4页，负对[1,2]，positive_pair_count=0）。原选择脚本逐文档glob效率较低；另一次单次枚举images+Counter核验得到同一可用范围，未读val/test选案例。选择不是随机样本，不声称覆盖真实负例分布。
+
+新输入 `artifacts/paddle-smoke/20261023T101200Z-negative-inputs/`，用原pack脚本全4页、空文字层及嵌入原JPEG审核。GPU0启动前空余39,607MiB且已有4进程，未终止任何已有GPU进程。`paper-paddle-negative-20261023T101200Z.service`初始PID1156473、active/running；入口与主模型/版面模型/环境/默认生成参数与原smoke相同，只换上述输入与run ID `20261023T101200Z-paddle-train-smoke`。输出/日志沿用标准时间戳目录，launcher `logs/paddle-launchers/20261023T101200Z/smoke.log`；命令为 `.venvs/paddle-v15-20261023T081029Z-paddle-v15/bin/python -u scripts/run_paddle_v15_smoke.py --inputs artifacts/paddle-smoke/20261023T101200Z-negative-inputs --vl-model models/20261023T064109Z-public-models/paddleocr-vl-1.5 --layout-model models/20261023T081029Z-paddle-layout/pp-doclayoutv3 --gpu 0 --run-id 20261023T101200Z-paddle-train-smoke`。完成与误连结果待核验。
+
+### 负例完成核验
+
+10:10:29–10:12:25 UTC，4页116.54秒，completed、unit inactive/dead、exit0；6个非空页面表。CPU adapter复用同入口，新输出 `artifacts/paddle-smoke/20261023T101400Z-negative-adapter/`，4/4页、missing/extra/duplicate=0、official_replay=identical；no_merge/official/content_compat全部6个表、0个跨页来源组。因此在选定官方负对[1,2]上没有错误合并，但只1个文档，不报告总体误连率。
+
+原预测 `pages.jsonl` SHA `a11043b19e5eba33f7795456d0370ba2f93fb6ad6018733caaf90f8a8abd3475`；推理summary SHA `d2e94790d35f9fd8227a72787335395285f9ab1c7a31f834fceb2a6f6fe228ce`；三组document-tables SHA均为 `bcdaabce1a03135dac7b3ebf31628d6fc929fa01a7926c8ce2c03ac7c5c6040e`。已结束无GPU任务继续运行。另已确认并终止本轮低效只读选择脚本（自身PID1140572，命令与启动时间核对），未终止任何模型/其他用户进程，未删除任何文件；替代单次枚举选择已得到结果。

@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-10-23 全量门禁扩展：用户要求持续到可启动全量；服务器62回归测试通过。新增train真实负例PMC11626747全4页任务 `paper-paddle-negative-20261023T101200Z.service`（初始PID1156473）已启动，来源/参数/日志见 [Paddle train审计](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。GPU0启动前空余39,607MiB，未改数据或其他进程。下一步核验负例、实现全量按文档恢复及清单预检，val全量尚未启动。
+
 2026-10-23 10:02 UTC（北京时间18:02）Paddle三组train评分完成：6页覆盖完整、无非法HTML，官方原版与无合并相同；兼容版两个案例来源页均完整、结构网格exact 2/2，内容网格exact仍0/2，全表GriTS-Con 0.6438514→0.9891835。仅两个选定train正例，不能当全量性能；原输入/输出SHA复核不变。下一步更多train正负例与可恢复val入口，未启动全量。详见 [三组配对评分](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。
 
 2026-10-23 Paddle 适配验收检查点：新分支 `codex/paddle-merge-compat` 实现官方原版回放及独立 content-compatible 后处理，服务器60相关测试通过。6/6页无缺失/重复，原版回放一致；compat形成2个跨页来源组，尚无正确率结论。只用CPU，原结果/官方包未改；train三组评分待执行，val全量未启动。见 [Paddle 三组后处理与评分](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。

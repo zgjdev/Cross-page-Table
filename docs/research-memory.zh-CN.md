@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 进一步全量门禁准备：**用户要求持续推进到可开始全量推理；新CLI集成回归服务器62测试通过。额外train负例文档PMC11626747全4页（官方负对[1,2]、无正对，且两页对应不同逻辑表）已打包，GPU0门禁空余39,607MiB后启动 `paper-paddle-negative-20261023T101200Z.service`，初始PID1156473；输出 `outputs/baselines/paddleocr-vl-1.5/20261023T101200Z-paddle-train-smoke/`、launcher `logs/paddle-launchers/20261023T101200Z/smoke.log`，完成状态待核验。无val推理启动。接下来有限真实负例验证及全量按文档断点入口/固定清单预检。
+
 - **2026-10-23 10:02 UTC Paddle 三组 train 评分完成：**CPU复用6页预测；官方原版与无合并相同，全表 GriTS-Con=0.6438514；content-compatible 全表/跨页子集 GriTS-Con=0.9891835、结构网格exact=2/2、内容网格exact=0/2，两表匹配来源页均[1,2]完整。60相关测试通过、原输入及适配输出SHA全部核验不变。仅两个选定train正例，不是正式性能/负例误连率。评分 `artifacts/paddle-smoke/20261023T100300Z-three-condition-train-scores/`，详细命令/指标/限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一阶段更多train正负例审计及可恢复val入口；目前无GPU/后台评分运行、val全量未启动。
 
 - **2026-10-23 Paddle 兼容版/评分适配已实现，train 评分待执行：**用户已确认设计；新分支 `codex/paddle-merge-compat`、代码 `9e6c5fa`，服务器60测试通过，6页覆盖完整、原版回放一致，兼容版形成2个[1,2]来源组而官方保持4个页表。原始预测/官方包未改、无GPU重跑；不等于2表恢复正确。新适配产物 `artifacts/paddle-smoke/20261023T100500Z-three-condition-adapter/`，详细命令/环境/已知限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一步三组train评分，val全量未启动。

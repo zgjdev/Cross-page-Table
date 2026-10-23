@@ -2,7 +2,23 @@ import json
 
 import pytest
 
-from scripts.run_paddle_v15_smoke import configure_cache, run_documents
+from scripts.run_paddle_v15_smoke import configure_cache, run_documents, validate_run_identity
+
+
+@pytest.mark.parametrize(
+    "name,split",
+    [
+        ("20261023T082900Z-paddle-train-smoke", "train"),
+        ("20261023T102000Z-paddle-val-full-PMC123", "val"),
+    ],
+)
+def test_explicit_split_and_run_identity(name, split):
+    validate_run_identity(name, split)
+
+
+def test_train_output_cannot_be_mislabeled_validation():
+    with pytest.raises(ValueError):
+        validate_run_identity("20261023T082900Z-paddle-train-smoke", "val")
 
 
 class Result:
