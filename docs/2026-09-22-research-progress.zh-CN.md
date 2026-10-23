@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-10-23 10:02 UTC（北京时间18:02）Paddle三组train评分完成：6页覆盖完整、无非法HTML，官方原版与无合并相同；兼容版两个案例来源页均完整、结构网格exact 2/2，内容网格exact仍0/2，全表GriTS-Con 0.6438514→0.9891835。仅两个选定train正例，不能当全量性能；原输入/输出SHA复核不变。下一步更多train正负例与可恢复val入口，未启动全量。详见 [三组配对评分](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。
+
+2026-10-23 Paddle 适配验收检查点：新分支 `codex/paddle-merge-compat` 实现官方原版回放及独立 content-compatible 后处理，服务器60相关测试通过。6/6页无缺失/重复，原版回放一致；compat形成2个跨页来源组，尚无正确率结论。只用CPU，原结果/官方包未改；train三组评分待执行，val全量未启动。见 [Paddle 三组后处理与评分](experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md)。
+
 2026-10-23 09:51 UTC：Paddle 两个 train 案例未合并原因定位为官方 block 与关键词读取的字段契约不匹配；仅 CPU 内存桥接后两例触发合并，原结果未改，尚无正确率或误连结论。推荐官方原版和独立兼容修正版分开报告，连同严格来源页 adapter 设计待确认；未启动全量、未新增 GPU/下载。证据与下一阶段选择见 [Paddle 官方合并契约审计](experiments/2026-10-23-paddle-native-merge-contract-audit.zh-CN.md)。
 
 2026-10-23 09:47 UTC（北京时间 17:47）：只读核验 Paddle 环境安装及 train GPU smoke 均已 exit 0，任务不再运行；09:15–09:19 UTC 处理 2 文档/6 页共 220.57 秒，missing/extra/duplicate=0，4 个页面表 HTML 格式检查通过。两文档 no_merge/native_merge 相同，未触发官方合并，不能冒称完整跨页恢复成功。最低空余显存 34,103 MiB。下一步核验官方合并判据/来源页及评分 adapter，尚未启动全量 val 或产生正式分数。证据、SHA 与限制见 [Paddle 环境与 smoke](experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md) 的完成核验段。

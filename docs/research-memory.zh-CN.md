@@ -10,6 +10,10 @@
 
 ## 当前研究状态
 
+- **2026-10-23 10:02 UTC Paddle 三组 train 评分完成：**CPU复用6页预测；官方原版与无合并相同，全表 GriTS-Con=0.6438514；content-compatible 全表/跨页子集 GriTS-Con=0.9891835、结构网格exact=2/2、内容网格exact=0/2，两表匹配来源页均[1,2]完整。60相关测试通过、原输入及适配输出SHA全部核验不变。仅两个选定train正例，不是正式性能/负例误连率。评分 `artifacts/paddle-smoke/20261023T100300Z-three-condition-train-scores/`，详细命令/指标/限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一阶段更多train正负例审计及可恢复val入口；目前无GPU/后台评分运行、val全量未启动。
+
+- **2026-10-23 Paddle 兼容版/评分适配已实现，train 评分待执行：**用户已确认设计；新分支 `codex/paddle-merge-compat`、代码 `9e6c5fa`，服务器60测试通过，6页覆盖完整、原版回放一致，兼容版形成2个[1,2]来源组而官方保持4个页表。原始预测/官方包未改、无GPU重跑；不等于2表恢复正确。新适配产物 `artifacts/paddle-smoke/20261023T100500Z-three-condition-adapter/`，详细命令/环境/已知限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一步三组train评分，val全量未启动。
+
 - **2026-10-23 09:51 UTC Paddle 合并原因已核验：**两个 train 案例宽度/列数/边界行均通过，但续页 `figure_title` 的 Continued 被拒；PaddleX 3.4.1 合并器关键词分支读 `.text` 等字段，实际 block 文字保存在 `.content`。原类/原合并器 CPU 内存复现拒绝，仅桥接 text=content 则两例触发合并，原文件哈希不变。不是模型没识别出标题，也不代表合并网格正确。尚未修改官方包/实现补丁/评分 adapter 或启动全量。建议保留原官方基线并单列 content-compatible 修正版；设计待确认，详见 `docs/experiments/2026-10-23-paddle-native-merge-contract-audit.zh-CN.md`。
 
 - **2026-10-23 09:47 UTC Paddle GPU smoke 完成核验：**自动任务已于 09:15–09:19 UTC（北京时间 17:15–17:19）运行完 2 文档/6 页，220.57 秒，安装与 smoke 均 exit 0、inactive/dead；缺失/额外/重复为 0，4 个 table HTML 均格式可解析。两份文档 no_merge/native_merge 完全相同，官方合并没有触发；这是 train 小规模可运行性验证，不是正式跨页分数或恢复成功。GPU 0 最低空余 34,103 MiB；当前推理已结束，无需重跑。下一步核验官方合并条件/来源页与评分适配，尚不能直接声称全量门禁通过。本轮只读核验，未启动全量或新任务，详细证据/产物 SHA 见 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md` 完成段。
