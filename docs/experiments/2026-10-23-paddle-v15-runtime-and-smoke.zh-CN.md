@@ -27,3 +27,20 @@ CPU 源码审计确认 PaddleX `PADDLE_PDX_CACHE_HOME` 可重定向缓存，nati
 - 输入计划：train 文档 `PMC10235804`、`PMC10311686`，各三页（0、1、2），包括无表页；train 表标签只用于选择小规模跨页烟雾案例（各有 page 1、2 片段），不作为推理输入、不据此裁图。没有查看 val/test 结果选规则。
 - 新脚本 `scripts/pack_pubtables_document_images.py` 只读取 `data/pubtables-v2/extracted/Full Documents/train/images/` 的上述完整文档图片，输出新 image-only PDF、页清单和来源 SHA 映射。PDF 页面为原图像素尺寸的一半（points），匹配官方 PDFReader 默认 scale=2；每页无文字层且嵌入 JPEG 字节与原图相同，保持 image-only 赛道。PDF 派生不会修改原图，不使用 GPU。
 - 本地打包/下载器合计 10 测试通过（自建新 basetemp）；包含页序、缺页拒绝、已有目录拒绝及原字节/空文字层检查。服务器打包与 GPU smoke 尚未执行；实际输出、推理耗时、峰值、错误和正式指标均待核验。smoke 不是正式 val 分数。
+
+## 整文档输入已完成，smoke 入口就绪
+
+上段“服务器打包尚未执行”是历史检查点：代码 `e7e5418` 在服务器运行打包/下载器 10 测试通过，并生成 `artifacts/paddle-smoke/20261023T081900Z-train-inputs/`，**2 文档/6 页**，`packing-manifest.json` 保存每页来源及 SHA、PDF SHA、空文字层和 JPEG 字节一致性审计。命令：
+
+```bash
+.venvs/eval312/bin/python scripts/pack_pubtables_document_images.py \
+  --images 'data/pubtables-v2/extracted/Full Documents/train/images' \
+  --documents PMC10235804 PMC10311686 \
+  --output-dir artifacts/paddle-smoke/20261023T081900Z-train-inputs
+```
+
+新增 `scripts/run_paddle_v15_smoke.py`，固定官方 v1.5 管线、native backend、随机种子 0；关闭方向/去畸变、图表/印章识别，保持版面检测，page/layout/VLM batch 均 1，其他生成参数使用官方默认值。**没有真值框、真值文字或真值筛页输入。**官方 PDFReader scale=2 源码入口：<https://github.com/PaddlePaddle/PaddleX/blob/v3.4.1/paddlex/inference/utils/io/readers.py>。
+
+对每个文档只预测一次；先逐页 flush 原始 `pages.jsonl` 并核对页号/页数，再复制官方 JSON 分别执行 `restructure_pages(merge_tables=False/True, relevel_titles=False, concatenate_pages=False)`，保留 `no_merge.json`/`native_merge.json` 和官方 `global_group_id`。合并器可能保留空内容 table block，故 summary 分别报告总 block 和非空 block，不将它们直接视为正确逻辑表数量。来源：<https://github.com/PaddlePaddle/PaddleX/blob/v3.4.1/paddlex/inference/pipelines/layout_parsing/merge_table.py>。本地相关 13 测试与 Ruff 通过；包括缺页立即失败并保留完整前缀、已有目录拒绝、同一次推理用于两种合并。
+
+待启动的有限后台入口（不是定期监控）为 `bash scripts/run_paddle_v15_smoke_after_setup.sh 20261023T082900Z-paddle-train-smoke`；等指定安装任务产生 `setup-complete.json` 才执行。如安装失败即退出；GPU 启动门槛空余 ≥20,000 MiB，逐页/文档检查低于 8,192 MiB 安全退出，不终止其他进程。5 秒 GPU 采样为整卡状态，不能冒称本进程峰值。输出 `outputs/baselines/paddleocr-vl-1.5/20261023T082900Z-paddle-train-smoke/`，实验日志/cache/config/manifest 在对应 `logs/baselines/paddleocr-vl-1.5/`。所有 cache/TMP 均在新项目子目录，不新增外部文件访问。安装后 CPU/GPU 实际兼容性、6 页覆盖、官方合并输出契约仍待验证；没有全量评测或正式分数。
