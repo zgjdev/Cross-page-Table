@@ -1,5 +1,11 @@
 # 项目研究进度
 
+2026-10-23 15:30 UTC（北京时间23:30）Paddle全量真实GPU启动已核验：service active、PID3358795，首篇8页文档的前3条JSONL完整，首条15:29:04 UTC；checkpoint尚0，不能称整文档完成。Linger=yes且无自动监控，完整935/13,871仍运行中、无正式指标。见 [全量推理实验](experiments/2026-10-23-paddle-full-val-inference.zh-CN.md)。
+
+2026-10-23 15:28:13 UTC（北京时间23:28:13）Paddle完整val后台启动：935文档13,871页，run20261023T152753Z-paddle-val-full，unit `paper-paddle-full-20261023T152753Z.service`、初始PID3358795，active/running。用户已授权启用并核验Linger=yes；当前启动预检，GPU首条产物待核验。输入只读、GPU0共享，不下载新数据/权重、无定期监控。日志/配置/恢复/完成条件见 [全量实验记录](experiments/2026-10-23-paddle-full-val-inference.zh-CN.md)。
+
+2026-10-23 用户再次询问能否启动时只读核验：代码b203248一致，GPU0空余39,607MiB，技术READY不变，无新实验结果/未启动全量；Linger=no运维边界保持，未修改系统配置。详情见全量启动门禁文档末尾。
+
 2026-10-23 当前优先Paddle模型全量技术门禁READY，尚未启动val。最终76服务器测试及复审通过；完整935/13,871只读预检通过；最终train四页新入口和实际恢复均完成（恢复1文档、无新增GPU、导出SHA一致），导出再次通过三组adapter。代码b390273在codex/paddle-merge-compat，最终文档同步该分支，不改main。用户要求推进到可启动，现达该点；Linger=no导致全会话退出后保活需额外授权。下一步按新RUN_ID启动全量；证据/命令/运维限制见 [全量启动门禁](2026-10-23-paddle-full-validation-readiness.zh-CN.md)。
 
 2026-10-23 最终版门禁检查点：b390273服务器76测试通过，完整val只读预检ready（935/13,871、模型SHA/环境/资源及图片全成员正确）；数字页序派生SHA已留痕。最终版4页train入口pilot已启动，unit/PID1304498与恢复验收待核验；未启动val全量。运维Linger=no边界未擅改，见 [启动门禁](2026-10-23-paddle-full-validation-readiness.zh-CN.md)。

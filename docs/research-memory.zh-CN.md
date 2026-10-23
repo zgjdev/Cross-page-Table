@@ -10,6 +10,12 @@
 
 ## 当前研究状态
 
+- **2026-10-23 15:30 UTC 全量GPU推理实际开始：**任务20261023T152753Z-paddle-val-full、unit `paper-paddle-full-20261023T152753Z.service`、父PID3358795仍active/running；首篇PMC10154845全8页图像PDF核验通过，raw JSONL首3页[0,1,2]完整、无尾残片；文档checkpoint目前0，恢复粒度整文档。worker明确val/image-only/seed0；Linger=yes，用户可断开客户端。完整935/13,871尚未完成、无正式分数；不安排自动监控。详细证据及恢复入口见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md`。只做文档提交同步，不修改运行中的冻结代码。
+
+- **2026-10-23 15:28 UTC Paddle全量已启动（启动预检）：**用户明确确认启动及后台保活，服务器zhengguojie Linger已从no核验为yes。任务20261023T152753Z-paddle-val-full，unit `paper-paddle-full-20261023T152753Z.service`、初始PID3358795，active/running；完整val935/13,871，启动GPU0空余39,607MiB。日志 `logs/paddle-launchers/20261023T152753Z/full.log`；run根 `artifacts/paddle-document-runs/20261023T152753Z-paddle-val-full/`。GPU首条预测待核验，不冒称已完成。详见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md`。未创建定期监控，未改原输入/官方包，任务中止可新RUN_ID恢复。
+
+- **2026-10-23 启动询问只读复核：**技术READY不变，无新结果/未启动全量；本地和服务器代码b203248，GPU0空余39,607MiB、利用率0%、仍有4个既有计算进程；无运行中的paper-paddle用户service，Linger仍no。仅回答能否启动，未擅自启动或修改系统保活。
+
 - **2026-10-23 PaddleOCR-VL-1.5 全量技术门禁 READY（未启动）：**最终代码b390273，服务器76相关测试通过、代码复审无阻塞；完整val935/13,871图片/JPEG/模型SHA/依赖/资源只读预检通过，报告 `logs/paddle-launchers/20261023T103500Z/full-val-preflight.json`。最终train四页完整入口pilot已exit0；实际恢复run104000 resumed_documents=1且无新增GPU工作，导出SHA不变并通过三组adapter。原/恢复artifact均保留。用户要求直到可启动，现停在验收点，不冒称val运行中。启动/恢复精确命令及证据在 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`。分支codex/paddle-merge-compat已同步两个远程，未合并main；Linger=no，全登录退出后持续运行需另获系统保活授权。此READY不代表OCRFlux/Popo各自门禁已过。
 
 - **2026-10-23 最终全量门禁验收运行中：**`b390273`分支已同步两个远程，服务器76测试通过；完整val只读预检ready，935/13,871全成员、模型SHA/环境/资源通过，数字页序SHA `1d39ca16b7fcfedf3dabb174c80ef4ae914d90a76a2839617a469c0ba75e90c5`。最终版train pilot `paper-paddle-full-entry-pilot-20261023T103500Z.service`初始PID1304498，输出 `artifacts/paddle-document-runs/20261023T103500Z-paddle-train-pilot/`，完成/实际恢复/导出适配待核验；尚未启动val。Linger=no，不能承诺全部登录断开仍继续，未修改系统设置。见全量readiness文档。

@@ -1,6 +1,6 @@
 # PaddleOCR-VL-1.5 全量推理启动门禁与断点方案
 
-日期：2026-10-23（Asia/Shanghai）。状态：**PaddleOCR-VL-1.5 全量推理技术门禁已通过，可以启动；尚未启动完整validation。** 用户要求持续推进到可启动，现停在该验收点。后台会话存续边界见文末，不承诺所有登录退出后的持续运行。
+日期：2026-10-23（Asia/Shanghai）。最新状态：**用户确认后已于15:28:13 UTC（北京时间23:28:13）启动完整validation后台任务，Linger已授权开启并核验yes；15:30 UTC首3页GPU预测已核验。** 详情见 [正式启动记录](experiments/2026-10-23-paddle-full-val-inference.zh-CN.md)。下面“未启动/待授权”等段落是此前readiness验收历史，保留不改写；当前为正式全量推理运行中，不是已完成。
 
 ## 冻结协议与启动门槛
 
@@ -93,3 +93,7 @@ PYTHONPATH=src .venvs/eval312/bin/python -u scripts/run_paddle_document_full.py 
 上面为前台命令，不应关闭承载任务的会话。若使用user systemd后台启动，应先接受并处理上面的Linger限制；本轮没有擅自开启系统保活。中断后新RUN_ID加 `--resume-from` 恢复，完成文档不重算。依当前10个不同train页面的小范围耗时，完整13,871页大约为数天量级（单进程batch1、逐文档重载模型、共享GPU）；不能把两例速度当精确ETA，开始后用首批实际整文档校正。
 
 本次READY只针对当前优先的PaddleOCR-VL-1.5。OCRFlux-3B和MinerU-Popo的权重虽已下载，不表示其各自运行/适配/全量门禁已通过。
+
+### 用户再次询问启动条件时的只读复核（2026-10-23）
+
+本地/服务器代码均b203248、检查前工作区干净；没有运行中的paper-paddle用户service。GPU0当前空余39,607MiB、利用率0%，仍有4个既有计算进程，不能视作独占。技术READY不变，无新实验结果，未启动全量；Linger仍为no，所有登录会话退出后的后台持续运行仍需额外授权配置。
