@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 08:06 UTC 下载完成核验：**三个模型主仓库的 50 文件均已下载并通过下载器大小/哈希校验；07:58:19 UTC `end status=0`，service 正常 inactive/dead。当前文件数量/大小及 LFS 哈希记录与官方配置再核对通过，本次未重算全部权重哈希。权重在 `models/20261023T064109Z-public-models/`。未启动新模型推理；下一步是 Paddle 独立环境、额外版面组件和 train smoke，不再重复下载这三个主仓库。详见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
+
 - **2026-10-23 06:42 UTC 三模型后台下载已启动：**代码 `6c58a64`，用户 service `paper-public-models-20261023T064109Z` 为 active/running，PID `3915961`，06:42:43 UTC 开始。新目录 `models/20261023T064109Z-public-models/`，日志 `logs/model-downloads/20261023T064109Z-public-models/`；Paddle LICENSE 首文件已校验，三模型仍待 complete/summary 核验。下载无 GPU、无数据集变更；并未启动模型推理或修改已有 eval312 环境。完整命令/版本/许可见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
 
 - **2026-10-23 06:41 UTC 公开模型下载准备：**用户已要求开始三个公开模型测试。已固化 50 个文件的官方 revision/大小/哈希清单，总计约 27.84 GB，下载器本地 7 项测试通过；计划服务器后台任务 `20261023T064109Z-public-models`，尚待启动确认。OCRFlux 权重 LICENSE 为 Qwen Research License，与工具 Apache-2.0 分开记录。日志/完整命令及后续阶段见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。本轮不下载数据集、不使用 GPU。
