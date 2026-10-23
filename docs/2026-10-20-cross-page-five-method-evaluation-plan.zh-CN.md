@@ -1,5 +1,7 @@
 # 跨页表格恢复：加入 POTATR 后的五方案执行计划
 
+**2026-10-23 优先级更新：**用户指定先测 PaddleOCR-VL-1.5、OCRFlux-3B、MinerU-Popo，POTATR 暂后置，不再阻塞公开模型准备。新增固定 Paddle 页面输出的 Popo 配对条件，具体来源核验、权重 SHA、服务器资源/网络及执行顺序见 [公开模型优先安排](2026-10-23-open-model-priority-and-readiness.zh-CN.md)。下文保留 10 月 20 日方案历史。
+
 日期：2026-10-20 UTC。**状态：计划更新，不表示新模型已下载或已测。**这是 `docs/2026-09-29-cross-page-four-model-evaluation-design.zh-CN.md` 的增补版本；原四模型计划及其历史结论保留供溯源。本文件用于接下来实际决策；未在此重述的下载安全、镜像核验、环境隔离、GPU 资源门禁和完整留痕要求继续沿用原计划及根目录 `AGENTS.md`。
 
 ## 1. 研究问题与不可混同的输入
