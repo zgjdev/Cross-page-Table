@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 06:42 UTC 三模型后台下载已启动：**代码 `6c58a64`，用户 service `paper-public-models-20261023T064109Z` 为 active/running，PID `3915961`，06:42:43 UTC 开始。新目录 `models/20261023T064109Z-public-models/`，日志 `logs/model-downloads/20261023T064109Z-public-models/`；Paddle LICENSE 首文件已校验，三模型仍待 complete/summary 核验。下载无 GPU、无数据集变更；并未启动模型推理或修改已有 eval312 环境。完整命令/版本/许可见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
+
 - **2026-10-23 06:41 UTC 公开模型下载准备：**用户已要求开始三个公开模型测试。已固化 50 个文件的官方 revision/大小/哈希清单，总计约 27.84 GB，下载器本地 7 项测试通过；计划服务器后台任务 `20261023T064109Z-public-models`，尚待启动确认。OCRFlux 权重 LICENSE 为 Qwen Research License，与工具 Apache-2.0 分开记录。日志/完整命令及后续阶段见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。本轮不下载数据集、不使用 GPU。
 
 - **2026-10-23 06:06 UTC HTML 审计已完成：**13,871 页/两层清单对账、输入前后 SHA 不变、旧评分 7 项哈希通过。637 张评分拒绝中 582 为词法兼容候选，55 未解决；前层 1,324 候选拒绝中 1,315 无 text，对应 1,159 页原串没有任何 text/HTML。两个拒绝页面集合交集 0；不能把候选数等同于 GT 丢表数。服务器相关 53 测试通过。产物 `artifacts/html-audits/20261023T060500Z-dots-html-filter-audit-v3/`；详细命令/哈希/案例/限制见 `docs/experiments/2026-10-23-dotsocr-html-filter-audit.zh-CN.md`。下一步在 train/合成样本冻结保真规范，并核验官方 prompt 的小规模推理；本轮没有新分数、GPU 或后台任务。

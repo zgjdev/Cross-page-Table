@@ -1,6 +1,6 @@
 # 三个公开模型的服务器权重下载
 
-日期：2026-10-23（Asia/Shanghai；运行时间记 UTC）。状态：启动准备。用户已要求开始 PaddleOCR-VL-1.5、OCRFlux-3B、MinerU-Popo 测试，当前先执行权重下载，尚未新模型推理。
+日期：2026-10-23（Asia/Shanghai；运行时间记 UTC）。状态：服务器后台下载运行中。用户已要求开始 PaddleOCR-VL-1.5、OCRFlux-3B、MinerU-Popo 测试，当前先执行权重下载，尚未新模型推理。
 
 任务标识：`20261023T064109Z-public-models`。目的：将固定版本官方权重直接保存在服务器项目内，并按官方元信息验证每个文件。网络/CPU 操作，无 GPU、无数据集下载、无原始数据或旧产物修改。
 
@@ -35,3 +35,26 @@ Paddle 模型卡 Apache-2.0、Popo 模型卡 MIT。**OCRFlux 权重仓库固定 
 计划使用独立用户 service `paper-public-models-20261023T064109Z`，launcher 日志为 `logs/model-download-launchers/20261023T064109Z-public-models/launcher.log`。启动后补记实际 PID/状态。三模型均 complete、50 个文件全部大小/哈希通过且总状态 0 才算下载完成；网络/哈希失败会记录失败类别、保留部分文件，不把 partial 写成 ready。该下载不代表运行环境/adapter/smoke 完成。
 
 后续顺序：Paddle 完成后另建独立运行环境，核对必要版面检测组件与缓存，执行 train 整文档小样本及显存标定；再安排 OCRFlux 和固定 Paddle 上游的 Popo。不可因主权重完成就直接宣布全页管线可运行。
+
+## 启动核验（2026-10-23 06:42 UTC）
+
+服务器代码 `6c58a64`，工作区启动前干净；服务器 7 项下载校验测试和 dry-run 通过。清单 SHA-256 `17a592bdfc95cb7991f1f68ad8432db660d022741cbdb0560fb9dac7594bfcc8`。
+
+实际后台启动命令：
+
+```bash
+systemd-run --user --unit=paper-public-models-20261023T064109Z \
+  --description="Verified public model weight downloads" \
+  --property=WorkingDirectory=/data01/public/zhengguojie/paper \
+  --property=Type=exec \
+  --property=StandardOutput=append:/data01/public/zhengguojie/paper/logs/model-download-launchers/20261023T064109Z-public-models/launcher.log \
+  --property=StandardError=append:/data01/public/zhengguojie/paper/logs/model-download-launchers/20261023T064109Z-public-models/launcher.log \
+  /data01/public/zhengguojie/paper/.venvs/eval312/bin/python \
+  scripts/download_public_models.py \
+  --manifest configs/public-model-downloads-2026-10-23.json \
+  --run-id 20261023T064109Z-public-models
+```
+
+06:42:43 UTC 日志记录 start，PID `3915961`，unit 为 `active/running`。06:42:49 UTC Paddle LICENSE 已下载且校验通过；正在继续文件列表。首次启动命令后立即 tail 日志遇文件尚未建立的时序差异，随即复查已成功，不属于下载任务失败。后台与本次 SSH 命令会话独立；未更改用户级 linger 或项目外系统设置，仍不能据此承诺最后一个登录会话退出后持续运行。
+
+当前仅证明下载开始，未达到三模型完成条件；所有新 GPU 测试仍未启动，不创建例行监控自动化。
