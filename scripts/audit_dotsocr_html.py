@@ -56,6 +56,8 @@ def main():
     rejected_pages = set()
     failed_pages = set()
     samples = defaultdict(list)
+    raw_missing = Counter()
+    raw_examples = []
     with (args.output_dir / "table-diagnostics.jsonl").open("x", encoding="utf-8") as output:
         for path in args.predictions:
             for row in rows(path):
@@ -72,7 +74,32 @@ def main():
                 extracted, warnings = extract_table_html(raw)
                 if extracted != row["tables_html"] or warnings != row["warnings"]:
                     raise ValueError(f"raw output differs from saved extraction: {image_id}")
-                for index, element in enumerate(parse_layout(raw)):
+                layout = parse_layout(raw)
+                if any(
+                    str(e.get("category", "")).casefold() == "table" and "text" not in e
+                    for e in layout
+                ):
+                    raw_missing["pages"] += 1
+                    raw_missing["pages_no_text_in_any_element"] += not any(
+                        "text" in e for e in layout
+                    )
+                    raw_missing["pages_literal_text_key"] += '"text"' in raw
+                    raw_missing["pages_table_markup"] += "<table" in raw.lower()
+                    try:
+                        json.loads(raw)
+                        raw_missing["raw_valid_json"] += 1
+                    except json.JSONDecodeError as error:
+                        raw_missing[f"raw_json_error/{error.msg}"] += 1
+                    if len(raw_examples) < 3:
+                        raw_examples.append(
+                            {
+                                "image_id": image_id,
+                                "raw_sha256": hashlib.sha256(raw.encode()).hexdigest(),
+                                "raw_start": raw[:600],
+                                "raw_end": raw[-200:],
+                            }
+                        )
+                for index, element in enumerate(layout):
                     if str(element.get("category", "")).casefold() != "table":
                         continue
                     value = element.get("text")
@@ -142,6 +169,8 @@ def main():
         "counts": dict(counts),
         "buckets": dict(buckets),
         "details": dict(details),
+        "missing_text_page_diagnostics": dict(raw_missing),
+        "missing_text_raw_examples": raw_examples,
         "pages_runner_rejected": len(rejected_pages),
         "pages_score_rejected": len(failed_pages),
         "pages_both_rejections": len(rejected_pages & failed_pages),

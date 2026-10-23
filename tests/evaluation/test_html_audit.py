@@ -56,12 +56,13 @@ def test_audit_reconciles_two_stages_and_refuses_existing_output(tmp_path):
             {
                 "image_id": "page",
                 "status": "ok",
-                "warnings": ["invalid_table_html:1"],
+                "warnings": ["invalid_table_html:1", "invalid_table_html:2"],
                 "tables_html": [table],
                 "raw_output": json.dumps(
                     [
                         {"category": "Table", "text": table},
                         {"category": "Table", "text": "<table><tr><td>cut"},
+                        {"category": "Table", "bbox": [0, 0, 1, 1]},
                     ]
                 ),
             }
@@ -92,7 +93,10 @@ def test_audit_reconciles_two_stages_and_refuses_existing_output(tmp_path):
     ]
     subprocess.run(command, check=True, capture_output=True)
     summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
-    assert summary["counts"]["runner_rejected"] == 1
+    assert summary["counts"]["runner_rejected"] == 2
+    assert summary["details"]["runner_rejected/missing_text_key"] == 1
+    assert summary["missing_text_page_diagnostics"]["pages"] == 1
+    assert summary["missing_text_page_diagnostics"]["pages_no_text_in_any_element"] == 0
     assert summary["counts"]["score_rejected"] == 1
     assert summary["pages_both_rejections"] == 1
     assert summary["buckets"]["score_rejected/lexical_candidate"] == 1
