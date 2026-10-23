@@ -141,6 +141,8 @@ def configure_cache(root):
     for key, folder in {
         "PADDLE_PDX_CACHE_HOME": "paddlex",
         "PADDLE_HOME": "paddle",
+        "PPNLP_HOME": "paddlenlp",
+        "CUDA_CACHE_PATH": "cuda",
         "HF_HOME": "hf",
         "MODELSCOPE_CACHE": "modelscope",
         "XDG_CACHE_HOME": "xdg",

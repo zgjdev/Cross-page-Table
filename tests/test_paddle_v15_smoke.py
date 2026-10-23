@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from scripts.run_paddle_v15_smoke import run_documents
+from scripts.run_paddle_v15_smoke import configure_cache, run_documents
 
 
 class Result:
@@ -67,3 +67,33 @@ def test_existing_output_rejected_before_inference(tmp_path):
     with pytest.raises(FileExistsError):
         run_documents(pipeline, tmp_path, manifest(), tmp_path)
     assert pipeline.inputs == []
+
+
+def test_cache_paths_are_explicit_and_project_local(tmp_path, monkeypatch):
+    import os
+    from pathlib import Path
+
+    keys = (
+        "PADDLE_PDX_CACHE_HOME",
+        "PADDLE_HOME",
+        "PPNLP_HOME",
+        "CUDA_CACHE_PATH",
+        "HF_HOME",
+        "MODELSCOPE_CACHE",
+        "XDG_CACHE_HOME",
+        "TMPDIR",
+        "MPLCONFIGDIR",
+        "TRITON_CACHE_DIR",
+        "TORCH_HOME",
+        "FLAGS_jit_kernel_cache_path",
+        "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK",
+        "HF_HUB_OFFLINE",
+        "HF_HUB_DISABLE_TELEMETRY",
+    )
+    for key in keys:
+        monkeypatch.delenv(key, raising=False)
+    configure_cache(tmp_path / "cache")
+    for key in keys[:-3]:
+        assert Path(os.environ[key]).is_relative_to(tmp_path)
+        assert Path(os.environ[key]).is_dir()
+    assert os.environ["HF_HUB_OFFLINE"] == "1"

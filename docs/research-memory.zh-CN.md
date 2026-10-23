@@ -10,6 +10,8 @@
 
 ## 当前研究状态
 
+- **2026-10-23 08:25 UTC Paddle train smoke 后台入口已启动：**`paper-paddle-smoke-20261023T082900Z.service`、初始 PID 422511，当前 `WAIT_SETUP`，不是已开始推理；安装完成后自动执行 2 文档/6 页 native 管线与 no_merge/native_merge。输入 PDF 已在服务器生成并审计，13 项相关测试通过。launcher 日志 `logs/paddle-launchers/20261023T082900Z/smoke.log`；下一步先核验安装与 smoke 实际终态/来源页、HTML/耗时，不直接启动全量。完整记录 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md`。
+
 - **2026-10-23 Paddle 下一阶段运行中：**独立环境安装后台 `paper-paddle-setup-20261023T081029Z.service`（初始 PID 330647）；PP-DocLayoutV3 四文件已于 08:14:43 UTC 校验下载完成（status=0），新目录 `models/20261023T081029Z-paddle-layout/pp-doclayoutv3/`。计划将 train 两个完整三页文档打包成无文字层 PDF，核验官方 v1.5 页面管线与跨页重组；尚未启动 GPU 推理。代码/环境/日志/固定模型 SHA 见 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md`。不得据安装运行中声称测试成功。
 
 - **2026-10-23 08:06 UTC 下载完成核验：**三个模型主仓库的 50 文件均已下载并通过下载器大小/哈希校验；07:58:19 UTC `end status=0`，service 正常 inactive/dead。当前文件数量/大小及 LFS 哈希记录与官方配置再核对通过，本次未重算全部权重哈希。权重在 `models/20261023T064109Z-public-models/`。未启动新模型推理；下一步是 Paddle 独立环境、额外版面组件和 train smoke，不再重复下载这三个主仓库。详见 `docs/experiments/2026-10-23-public-model-downloads.zh-CN.md`。
