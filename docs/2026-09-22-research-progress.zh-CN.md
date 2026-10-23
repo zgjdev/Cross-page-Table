@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-10-23 06:41 UTC 检查点：开始三个公开模型的服务器下载准备；固定 50 文件/约 27.84 GB 的官方清单与校验脚本，未启动模型推理。OCRFlux 权重使用 Qwen Research License（工具代码 Apache-2.0）。状态、命令和产物入口见 [公开模型下载](experiments/2026-10-23-public-model-downloads.zh-CN.md)。
+
 2026-10-23 优先级调整：用户指定先测试 PaddleOCR-VL-1.5、OCRFlux-3B、MinerU-Popo，POTATR 后置；已核验公开权重 SHA/接口并完成服务器只读资源与网络预检。未下载新权重、安装环境或启动推理，尚无新模型分数。执行入口见 [公开模型优先安排](2026-10-23-open-model-priority-and-readiness.zh-CN.md)。
 
 2026-10-23 06:06 UTC 补充检查点：dots.ocr 两层 HTML 过滤 CPU 审计已完成。637 张评分拒绝中 582 为词法兼容候选、55 未解决；前层拒绝中 1,315 条无 text，涉及 1,159 页且原串无任何文字/表格 HTML。拒绝页面集合无交集；全部输入哈希不变，53 项相关测试通过。没有新评分/训练结果，规范化与缺内容推理原因仍待在 train 核验。命令、案例、边界和产物见 [HTML 过滤审计](experiments/2026-10-23-dotsocr-html-filter-audit.zh-CN.md)。
