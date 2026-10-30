@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-10-30 11:26北京时间 OCRFlux全量首条真实GPU预测已核验：同一run20261030T032500Z-ocrflux-val-full，935/13,871冻结输入，首篇PMC10154845页0用时21.04秒、终态ok；整文档checkpoint暂0，任务仍运行，GPU0空余15,227MiB高于保护线。未完成/未评分，无定期监控，详见 [全量实验记录](experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md)。
+
+2026-10-30 11:24:57北京时间，用户授权OCRFlux全量validation启动：RUN_ID20261030T032500Z-ocrflux-val-full，unit paper-20261030T032500Z-ocrflux-val-full.service，初始父PID477502/active。目标935篇13,871页，GPU0空余31,143MiB预检、Linger=yes，无定期监控；首批真实GPU预测待核验，未完成/未评分。[完整实验及恢复入口](experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md)。
+
 2026-10-30 10:14北京时间 OCRFlux技术READY：最终v3实际pilot及无新增GPU的恢复均完成，31产物哈希与两组表SHA一致；最终train配对评分、32服务器测试、独立复核及935篇/13,871页完整val预检通过。尚未启动val，验收服务均已结束、无定期监控；下一步可启动OCRFlux，Popo仍未就绪。[启动/恢复说明](2026-10-30-ocrflux-full-validation-readiness.zh-CN.md)，[实验及最终核验](experiments/2026-10-30-ocrflux-runtime-and-smoke-readiness.zh-CN.md)。
 
 2026-10-30 OCRFlux独立复核两项P1已回归修复：GPU异常传播、12页词法清单数字排序；本地29/服务器32相关测试通过。新full-source-v3正在重新验收真实pilot/恢复与完整val预检，旧产物保留，不提前宣称全量运行；见 [readiness](2026-10-30-ocrflux-full-validation-readiness.zh-CN.md) 与 [实验记录](experiments/2026-10-30-ocrflux-runtime-and-smoke-readiness.zh-CN.md)。

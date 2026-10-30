@@ -1,6 +1,6 @@
 # 跨页表格恢复研究长期记忆
 
-最近检查：2026-10-30 02:14:46 UTC（北京时间10:14），OCRFlux完整流程技术READY，未启动val全量。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
+最近检查：2026-10-30 03:26:20 UTC（北京时间11:26），OCRFlux全量运行中、首条GPU预测已验证。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
 
 ## 每次接手先做什么
 
@@ -9,6 +9,10 @@
 3. 对照本文件“当前状态/下一步”，只以可核验证据更新状态；不根据旧对话推测已完成下载、训练或评估。
 
 ## 当前研究状态
+
+- **2026-10-30 11:26北京时间 OCRFlux全量真实GPU推理已核验：**同一run20261030T032500Z-ocrflux-val-full仍运行，冻结run-manifest确认935文档/13,871页；首篇PMC10154845共8页，页0请求21.04秒、error=null、页面终态ok。完整文档checkpoint暂0（按整文档计），不是无输出。GPU0空余15,227MiB高于8192保护线；父PID477502、systemd+Linger托管。未完成、无正式分数，不更改冻结运行代码、不创建定期监控。详见本日full-val实验末段。
+
+- **2026-10-30 11:24:57北京时间 OCRFlux全量任务已启动：**用户明确授权，RUN_ID `20261030T032500Z-ocrflux-val-full`，unit `paper-20261030T032500Z-ocrflux-val-full.service`，初始父PID477502、active。完整val935/13871、image-only、冻结full-source-v3，入口在artifacts/ocrflux-launchers/同ID/launch.py；父日志logs/ocrflux-launchers/同ID/full.log，结果artifacts/ocrflux-document-runs/同ID。GPU0启动前空余31,143MiB、Linger=yes；无定期监控。首批GPU预测待核验，不冒称已完成。详细协议/命令/恢复见 `docs/experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md`。未启动Popo或CPU正式评分。
 
 - **2026-10-30 10:14北京时间 OCRFlux全量技术READY（未启动）：**最终v3实际4页pilot及新run恢复均completed/exit0，恢复resumed_documents=1且无新GPU调用；两组表SHA一致、31产物SHA核验通过。3篇10页真实smoke及最终两组CPU评分完整，指标与v2字节相同，均1项HTML评分契约拒绝未修补；小样本非正式结果。服务器32/本地29相关测试和ruff通过，独立复核两项P1关闭。完整val935/13871输入、模型、环境、官方源码及最终代码SHA预检通过；最终证据 `artifacts/ocrflux-prep/20261030T015400Z/acceptance/final-audit-v3.json`。所有验收任务结束，GPU0空余31,143MiB快照，Linger=yes；没有全量/监控运行。启动/恢复说明 `docs/2026-10-30-ocrflux-full-validation-readiness.zh-CN.md`，冻结服务器源码full-source-v3，启动前仍需重查GPU。下一步可启动OCRFlux完整val；Popo环境仍待准备，不冒称全部模型就绪。
 

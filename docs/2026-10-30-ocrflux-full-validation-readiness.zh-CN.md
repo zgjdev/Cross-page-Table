@@ -1,6 +1,6 @@
 # OCRFlux Full Documents 全量验收与运行说明
 
-日期：2026-10-30（Asia/Shanghai，日志为UTC）。状态：**技术READY，尚未启动validation全量**。最终v3实际pilot/恢复、train配对评分、完整val预检及独立复核均已通过，最终核验时间02:14:46 UTC（北京时间10:14）。当前仅对应OCRFlux-3B，不代表MinerU-Popo就绪。
+日期：2026-10-30（Asia/Shanghai，日志为UTC）。验收在02:14:46 UTC完成；用户授权后已于03:24:57 UTC启动全量，首条真实GPU预测通过，运行中。RUN_ID `20261030T032500Z-ocrflux-val-full`，当前状态与日志见 [全量实验](experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md)。下文保留可用于新run的启动/恢复模板，当前仅对应OCRFlux-3B，不代表MinerU-Popo就绪。
 
 ## 已验收的完整流程
 
@@ -24,7 +24,7 @@
 - 最终实际pilot/恢复：`artifacts/ocrflux-document-runs/20261030T015400Z-ocrflux-full-entry-{pilot,resume}-v3/`。
 - 服务器已冻结可执行源码：`artifacts/ocrflux-prep/20261030T015400Z/full-source-v3/`，不覆盖服务器原分支src/scripts。完整经过与失败现场见 [实验记录](experiments/2026-10-30-ocrflux-runtime-and-smoke-readiness.zh-CN.md)。
 
-## 全量启动方式（尚未执行）
+## 全量启动与恢复模板
 
 阶段是validation推理，目的是取得935篇完整文档两组可复现预测。输入为已有val原始JPEG和冻结清单；输出为新的按文档检查点、原始响应、两组评分输入与日志。不下载数据、不修改原始数据，使用GPU0。推理结束后另做两次CPU正式评分；自动导出不等于已评分。
 
