@@ -14,6 +14,7 @@
 
 ## 协议与证据
 
+- 本地代码commit：`6856155`，身份zgjdev；服务器使用下述已核验隔离源码，原分支未切换。本轮尚未推送GitHub。
 - 数据：PubTables-v2 Full Documents revision `aa575e798cb00a296925e2086addb3e3fd9a1903`；image-only，train开发、val正式比较，test未使用。GT只进入离线评分，不提供给模型或adapter。
 - 模型：OCRFlux-3B revision `e68592278bbc8ab32edf7b65e6e411f1d878ef72`；官方代码 `c1b315aa4c8309f8dc436a5d90fc4977bcf0d865`。
 - 固定环境：`.venvs/20261029T162200Z-ocrflux/`，Python3.11、torch2.5.1+cu124、vllm0.7.3、transformers4.50.0、Poppler26.10.0；freeze SHA `842cb1c8896026a0652a4be982523a4a2c3c40548bfd7f9e7cae2aff4971786e`。
