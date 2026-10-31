@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-10-31 19:43:54北京时间，OCRFlux同协议恢复已核验：新run20261031T114000Z-ocrflux-resume-a001，原32篇430页/2,726文件引用核验后复用，新第33篇PMC10285071前3页ok。supervisor PID355605/active，GPU0空余24,747MiB；原参数/38截断终态不改，有限恢复代码5e0a89e。全量未完成/未评分，无定期监控。[实际恢复证据及新日志入口](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
+
+2026-10-31 19:41:08北京时间，OCRFlux共享GPU profiling断言排查后启动同协议有限恢复：user unit paper-ocrflux-recovery-20261031T114000Z.service，初始PID355605/active；原推理源码及模型/生成参数不改，新run恢复32篇检查点待核验。本地33相关测试、服务器4恢复测试及独立复核通过；仅已知生成前初始化错误允许有限重试，不停止其他用户进程、不覆盖旧结果。[恢复实验及日志入口](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
+
 2026-10-31 18:11北京时间，只读检查发现OCRFlux原全量任务已于10月30日18:02:58北京时间失败停止：32/935篇检查点、430/13,871页终态（3.10%），392成功、38生成截断。第33篇PMC10285071初始化vLLM显存profiling断言失败，无页预测；父unit failed、PID0、exit1，不是仍在运行。身份/覆盖/协议检查无异常，全部文件SHA本轮未重算。仅记录未恢复/重启，旧结果完整保留；后续排查初始化稳定性并按同协议新run恢复，不用从头重算，不据val调生成参数。[证据、失败与下一步](experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md)。
 
 2026-10-30 11:26北京时间 OCRFlux全量首条真实GPU预测已核验：同一run20261030T032500Z-ocrflux-val-full，935/13,871冻结输入，首篇PMC10154845页0用时21.04秒、终态ok；整文档checkpoint暂0，任务仍运行，GPU0空余15,227MiB高于保护线。未完成/未评分，无定期监控，详见 [全量实验记录](experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md)。
