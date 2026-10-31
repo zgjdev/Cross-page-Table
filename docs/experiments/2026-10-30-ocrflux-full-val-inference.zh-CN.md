@@ -1,6 +1,6 @@
 # OCRFlux-3B 完整validation推理
 
-日期：2026-10-30（Asia/Shanghai）；服务器日志使用UTC。状态：**后台全量运行中，首条真实GPU预测已核验**，尚未完成/评分。
+日期：2026-10-30启动，2026-10-31复核（Asia/Shanghai）；服务器日志使用UTC。当前状态：**失败停止，32篇/430页检查点保留**，尚未完成/评分。历史启动状态保留下文。
 
 ## 目的与固定协议
 
@@ -43,3 +43,19 @@ run-manifest.json实际包含935篇、13,871页，父unit仍active/running、Mai
 此时checkpoints数量0，因为第一篇8页及跨页后处理尚未全部完成；不能把1页预测称为1篇已完成。GPU0空余15,227MiB、利用率73%，高于8192MiB保护线；仍有其他用户进程，没有终止其他进程。已知多模态最坏情况context警告与train验收相同，当前首请求成功，无证据表明资源失败。
 
 任务由服务器user systemd及Linger=yes保活，关闭当前对话、断开SSH或关闭本机不直接中断任务；服务器重启/资源异常仍可能中断，届时按新RUN_ID恢复。不安排定期监控，也不承诺对话关闭后自动收到通知。结束后需核验全覆盖、SHA及两次CPU正式评分，当前无全量指标。
+
+## 2026-10-31 10:11 UTC（北京时间18:11）只读进度检查：任务已失败停止
+
+用户询问完成进度，本轮仅SSH读取原run产物和进程/GPU状态，没有启动、重启、终止任务或修改服务器文件。unit为failed/failed、MainPID0、ExecMainStatus1。父exit.json记录结束于2026-10-30T10:02:58.486086+00:00（北京时间10月30日18:02:58），实际运行6.6336小时；不是持续运行至本次检查。没有定期监控，因此本轮才发现失败。
+
+已保存32/935篇完整文档检查点，对应430/13,871页终态（3.09999%）；392页status=ok、38页status=error。逐请求原始响应核验finish_reason为stop392、length38，38页均报Generation truncated or incomplete。该覆盖不能称430页全部成功。完成文档的续接/重建decision统计detect:ok339、merge:ok19、detect:error1；这些是接口状态而非恢复正确率，没有评分。
+
+本轮遍历检查点身份、预期页数、重复、protocol一致性，以及每篇保存pages数量，未发现异常。没有重算完整raw/PDF等产物的全部SHA，因此不能称已通过最终完整性验收；恢复入口会执行SHA核验。原始输入、结果、失败日志均保留。
+
+第33篇PMC10285071（预期13页）已打包，但在模型初始化期间退出，predictions/summary.json状态failed、documents=[]、pages=0。native.log明确报错：`AssertionError: Error in memory profiling`，initial used memory=33,683,668,992 bytes、currently used memory=32,503,431,168 bytes，触发vLLM要求profiling期间显存占用增加的断言。断言发生在引擎初始化而非表格评分或该文档生成；无证据表明本次是CUDA OOM。
+
+已提供证据是两次显存采样下降约1.10GiB；共享GPU上其他任务释放显存是可能解释（推断），也可能涉及本引擎自身释放/初始化行为，具体来源待核验，不能仅按官方通用报错认定是本任务未清理显存。检查时GPU0空余40,661MiB、利用率56%，仅当前快照，不能反推昨晚状态。
+
+证据路径：根summary.json（status=failed/completed_documents32/pages430）、父日志full.log及exit.json、checkpoints/*.json、第33篇documents/PMC10285071/native.log和predictions/summary.json。请求截断证据在各已完成文档predictions/raw/数字序号.json；本轮未改写任何产物。
+
+下一步是排查初始化资源稳定性，再使用同一冻结协议和新RUN_ID从本run恢复；32篇检查点核验后跳过，第33篇仅在新目录重新执行。不得修改或清理旧数据。38页生成截断属于原协议的失败终态，不能用val结果调max_tokens、提示或重试策略后混为同一实验；若需研究应先在train另立协议和记录。此次未自动恢复，当前没有运行中的OCRFlux任务。由于任务已经中断，不能将包含停机时间的线性外推当成剩余时间；恢复后再按实际吞吐更新估算。
