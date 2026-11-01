@@ -47,3 +47,15 @@ unit `paper-ocrflux-recovery-20261031T114000Z.service`，初始父PID355605，ac
 unit仍active/running、MainPID355605，GPU0快照空余24,747MiB、利用率100%，高于8192保护线。最终验收证据 `logs/ocrflux-recovery/20261031T114000Z-ocrflux-resume/startup-check.json`；当前attempt-001.json及attempt-001.log保存完整命令和资源采样。没有发生本次a001再次初始化失败，后续同类失败的有限重试仅由进程内部执行；未创建定期Agent监控。
 
 恢复层代码本地commit `5e0a89e`，身份zgjdev；服务器使用隔离恢复source，不改旧冻结推理源码或仓库分支。当前累计完整文档检查点仍32篇/430页，第33篇尚未全部完成，不能把3个新页称为新增完整文档。任务依赖服务器systemd+Linger运行，关闭当前电脑/对话不直接影响；资源竞争仍可能发生，有限重试不保证未来无中断。全量完成后仍需覆盖/哈希/两组CPU评分验收，当前无正式指标。
+
+## 2026-11-01 11:21:17 UTC（北京时间19:21）进度检查
+
+supervisor仍active/running、MainPID355605，attempt元数据仅001，原恢复run `20261031T114000Z-ocrflux-resume-a001` 持续执行，没有新增失败后恢复。旧32篇检查点与当前新增检查点按document_id合并、重复只接受完全相同的result引用，累计150/935篇、2,254/13,871页终态（16.2497%）；恢复以来新增118篇/1,824页。
+
+逐个检查点的文档身份、预期页数、协议一致性、冲突及最终pages数量未发现异常。此轮未重算全部PDF/raw文件SHA，不代替最终完整性验收。累计2,102页status=ok、152页error：150项Generation truncated or incomplete、1项JSON Invalid escape、1项JSON Unterminated string。以上错误按冻结协议保留，未重试或改生成参数。detect:ok1878、merge:ok98、detect:error2、merge:error3仅是接口终态统计，不是正确率，尚未正式评分。
+
+当前未完成文档PMC10546020共22页，页0终态ok，不计入上述完整文档/页面进度。native日志11:20:43 UTC profiling完成、11:20:45引擎初始化完成，随后页0请求19.5453秒、error=null；当前user service和实际日志均表明继续运行。raw文件mtime异常显示2024-12-09，不与当前UTC日志一致，因此本轮不以文件mtime推断任务停滞或最新输出时间；未改时间戳。GPU0当前空余42,153MiB、利用率40%，高于8192MiB保护线，快照不代表独占资源。
+
+自supervisor启动约23.669小时，新增完整页1,824，平均约77.06页/小时；剩余11,617页按这一段吞吐线性外推约150.75小时，即约6–7天，不包含之后两组CPU评分。文档长度、生成截断耗时、共享GPU负载与后续恢复都可能改变速度，不能作完成承诺。
+
+本轮只读访问服务器已有产物/进程/GPU，未重启、停止、修改代码/协议/数据或创建监控；仅本地更新三层进度记录。后续继续从supervisor最新attempt和新旧检查点并集恢复进度，不能只数a001目录而遗漏原32篇，也不能把失败页称为成功页。

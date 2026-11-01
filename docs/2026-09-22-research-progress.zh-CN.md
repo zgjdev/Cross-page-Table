@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-11-01 19:21北京时间 OCRFlux恢复任务运行正常：a001/PID355605 active，累计150/935篇、2,254/13,871页终态（16.25%），恢复后新增118篇/1,824页；2,102成功、152错误（150截断+2 JSON解析），尚无正式评分。当前22页文档PMC10546020处理页0；GPU0空余42,153MiB。检查点身份/协议/页数无异常、未全量重算SHA；按恢复后吞吐粗估余6–7天，不含评分。只读检查、未改变任务。[证据与边界](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
+
 2026-10-31 19:43:54北京时间，OCRFlux同协议恢复已核验：新run20261031T114000Z-ocrflux-resume-a001，原32篇430页/2,726文件引用核验后复用，新第33篇PMC10285071前3页ok。supervisor PID355605/active，GPU0空余24,747MiB；原参数/38截断终态不改，有限恢复代码5e0a89e。全量未完成/未评分，无定期监控。[实际恢复证据及新日志入口](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
 
 2026-10-31 19:41:08北京时间，OCRFlux共享GPU profiling断言排查后启动同协议有限恢复：user unit paper-ocrflux-recovery-20261031T114000Z.service，初始PID355605/active；原推理源码及模型/生成参数不改，新run恢复32篇检查点待核验。本地33相关测试、服务器4恢复测试及独立复核通过；仅已知生成前初始化错误允许有限重试，不停止其他用户进程、不覆盖旧结果。[恢复实验及日志入口](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
