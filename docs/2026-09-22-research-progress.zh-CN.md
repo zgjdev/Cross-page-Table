@@ -1,5 +1,31 @@
 # 项目研究进度
 
+2026-11-09 形成 [跨页联合结构重建研究方案与实验决策规范](plans/2026-11-09-cross-page-joint-reconstruction-research-plan.zh-CN.md)。规定 R0/R1/D0 受控到全文档协议、共同列槽与可编辑网格、监督来源及掩码、同骨干多图 SFT/OvisOCR3/Popo 强对照、统计和评分冻结、G0–G6 预设门槛、失败纠偏及模块实施清单。下一步首先审计 train 真实片段、标签及可修复空间，不直接开始全量训练。本轮是研究设计与文档同步，无新模型结果。既有阶段记录及已完成 Paddle/OCRFlux 评分记录一并纳入版本控制，以保证方案引用可恢复。
+
+2026-11-09 再核对跨页联合纠错的实现能力。上一候选仅具体落实关联预测，结构编辑及视觉定位尚未设计，不能直接声称实现局部结构纠错。明确需允许修订 Paddle 局部网格并记录跨页证据，后续用仅关联/结构编辑/跨页证据消融验证。无新实现或实验。[能力边界修正](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-联合纠错能力边界修正)
+
+2026-11-09 细化自研实现路径。复用 Paddle、预训练文本编码器及 PyTorch TransformerEncoder，自研跨页关系头与结构解码。另设 Qwen3-VL-2B 多图 LoRA 强基线。训练前需完成列关系监督和冲突解码设计，模型尺寸及显存均为待验证。无新实现或实验。[实现框架建议](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-模型实现框架建议)
+
+2026-11-09 根据用户对论文贡献的质疑修正方法定位。规则加 DP/MLP 保留为诊断基线。补查 OvisOCR3 原论文，确认已有两页图像加解析表示的重建方法和独立跨页指标，后续需补入强对照。局部解析带噪下的联合整表结构修复与多页一致性为待验证方向。无新实现或分数。[贡献复核与来源](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-方法贡献复核与相关工作补查)
+
+2026-11-09 细化跨页重建候选框架。固定 Paddle 片段 HTML，以规则打分和允许缺列的保序动态规划为首版，边界行和可学习打分逐步消融。Paddle 表级框与 HTML 契约已核对，裁剪图识别效果和派生监督待核验。无新实现或结果。 [方法候选](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-跨页重建方法候选)
+
+2026-11-09 补记论文输入路线建议。先用 Full Documents 的真实裁剪片段验证重建器的独立收益，再用完整文档、同一套上游预测验证实际收益。两种协议单列，先从 train 抽样诊断和配对拼接实验开始。无新结果。[论文定位与输入选择](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-论文定位与输入选择)
+
+2026-11-09 复核自研方案启动条件。已有真实跨页整表真值和同上游合并对照，支持进入设计与小样本验证阶段。首个研究对照拟固定同表分组和片段预测，测直接拼接与列对齐的差异，分开记录上游内容缺失。完整文档接入、来源页核验和误连评估作为后续阶段。大规模训练依赖 train 样本审计、派生标签质量、文档级泄漏检查与简单基线。当前为方案建议，无新实验。 [现有阶段与证据](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md)
+
+2026-11-09 核对 PubTables-v2 v4。论文 dots.ocr 合并全表 GriTS-Con 从 v3 0.6844 更新为 v4 0.7495，无合并仍 0.5768，全表 Acc-Con 仍 11.80%。项目与论文在划分、续接器及 HTML 处理上存在差异。已确认作者新版 GriTS HTML 转换与本地固定版本的实现差异，尚未量化分数影响。TATR 同版本 +DT 在结构分上也有待复现的差距。POTATR 官方权重与代码现已公开。无新推理或评分。 [v4 分差核查](reports/2026-11-09-tested-models-parameters-inputs-and-results.zh-CN.md#2026-11-09-pubtables-v2-v4-对照与分差核查)
+
+2026-11-09 已测模型对照整理完成。核对四款模型已有权重的参数口径与原论文、官方基准，记录实际输入、公开结果和项目正式评分。完整dots权重约3.04B、Paddle识别VLM约0.959B、OCRFlux按共享权重去重约3.754B、TATR约28.8M。本轮为资料和权重元数据核验。[四模型对照](reports/2026-11-09-tested-models-parameters-inputs-and-results.zh-CN.md)
+
+2026-11-08 12:32北京时间核验OCRFlux两组正式评分完成，于01:52:55结束、summary completed/unit exit0，1,916输入与6结果SHA全部一致。no_merge/merged全表Con0.535472/0.596342，跨页Con0.523772/0.588922，跨页内容exact0/4（983张分母，来源页需另查）；两组完整13,871页且729错误页保留。三套整文档模型已有正式结果，见 [三模型汇总](reports/2026-11-08-dots-paddle-ocrflux-full-val-results.zh-CN.md) 与 [本日评分完成核验](experiments/2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md)。下一步结果与错误审计、固定Paddle的Popo准备。
+
+2026-11-08 00:21:57北京时间 OCRFlux两组正式CPU评分启动，RUN_ID20261107T162300Z-ocrflux-full-val-scores，父PID2703956/active，no_merge子PID2704606实际CPU计算，merged随后自动执行。预检935/13,871覆盖、729失败页保留、2,587全表/983跨页GT与1,916输入SHA通过。评分器实际字节SHA与Paddle一致，首次archive换行差异预检失败现场保留。当前暂无正式指标，输出与日志见 [两组评分实验记录](experiments/2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md)。
+
+2026-11-08 00:08北京时间核验OCRFlux推理及两组导出完成，935篇/13,871页终态全覆盖，13,142页成功、729页错误；两组导出missing/extra/duplicate均0，预测表3,223/2,563。任务于11月7日23:56:19北京时间exit0，supervisor completed、unit inactive。adapter的936输入/6输出SHA全部复核一致，源raw/PDF未在本轮独立全部重算。下一步CPU两组正式评分，当前尚无全量分数。[完成核验及路径](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
+
+2026-11-07 14:03北京时间 OCRFlux恢复任务仍运行（a001/PID355605），累计881/935篇、12,995/13,871页终态（93.68%），比上次新增202篇/3,124页。12,294页成功、701页错误（682截断/18 JSON/1 AttributeError），当前26页文档已有9页ok。检查点身份/协议/页数无异常，本轮未全量重算SHA。剩54篇876页，按恢复后吞吐粗估11.32小时，后续核验和评分另计。[恢复实验及证据](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
+
 2026-11-05 23:10北京时间 OCRFlux恢复任务仍正常运行，a001/PID355605 active，累计679/935篇、9,871/13,871页终态（71.16%），比11月3日新增313篇/4,713页。9,315页成功、556页错误（543截断、12 JSON、1 AttributeError），当前PMC11695376已17/19页但尚未形成完整文档检查点。身份/协议/页数检查无异常，未全量重算SHA；GPU0空余35,739MiB，粗估余2–3天，不含评分。此次只读检查并更新记录。[实验与证据入口](experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。
 
 2026-11-03 14:02（北京时间），OCRFlux a001仍运行（PID355605），原任务与恢复任务合计366/935篇、5,158/13,871页已保存检查点（37.19%），较上次增加216篇、2,904页。4,862页成功、296页报错（290截断、5 JSON解析、1 AttributeError）。当前PMC11022528已有4/11页，未计入上述总数。恢复以来平均约71页/小时，余约122小时，不含评分。本次只读统计，未重算文件哈希。
@@ -422,3 +448,11 @@
 ### 同日 15:56 UTC dots 推理/评价链路只读核验
 
 **存在应优先解决的有效性风险，旧结果不改。**val 真值 2,587 表；本地两层 HTML 处理依次记录 1,324 个 runner warnings、adapter 2,752 预测表中再有 637 条被 XML 解析拒绝（520 标签不匹配、99 非法字符、12 多根、6 未知实体），最终参与评分 2,115 张预测表。解析规则可能导致正常 HTML 被跳过，影响分数的大小仍未确定。full_document Hungarian + micro GriTS/格子 exact 未发现已证实聚合公式 bug，但 cross_page 自定义 Con 匹配后只取 GT 子集，`Top` 沿用 Con 匹配、未对全部假阳性处罚，source_pages 不参与 grid exact；不得与论文全表直接对比，亦不能称 2/983 已核实续表正确。先在 train 核验解析/预测格式与官方代码，冻结统一规则后在新目录复评 val，ViT 官方合并器未复现。只读统计、代码入口和边界详见 `docs/experiments/2026-10-20-dotsocr-full-val-offline-evaluation.zh-CN.md` 15:56 段。
+
+## 2026-11-05 本地研究阶段与可行性复核
+
+仅审阅本地计划、代码和保存记录，无新实验/服务器访问。判断：完整文档基线部分完成，仍处 M0 评测复现向跨页核心方法验证过渡；不能把全文档基线运行视作 M4 自研系统完成。OCRFlux 最新保存状态仍为11月3日366/935篇，当前实时状态待核验。主要缺口为细粒度派生标签审计、严格来源页/误合并评价、自研方法与消融；建议固定上游先验证跨页结构贡献。完整证据与边界见 [阶段复核](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md)。无新结果，未改变服务器任务。
+
+## 2026-11-06 2B–4B候选模型补查
+
+只读核验官方模型页/论文，新增 [候选报告](reports/2026-11-06-small-vlm-cross-page-candidates.zh-CN.md)：Qwen3-VL-2B/4B、DeepSeek-OCR-2约3B、MonkeyOCR-pro-3B、InternVL3_5-4B。区分页解析、多图输入和明确跨页合并；MonkeyOCR v1.5模块与公开权重/代码对应仍待核验。无新实验/服务器访问，不改OCRFlux→Popo既有安排，也不更新任务实时状态；下一步如选型，先固定revision及train完整文档正负例smoke。

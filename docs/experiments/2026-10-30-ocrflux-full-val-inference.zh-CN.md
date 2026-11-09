@@ -1,6 +1,6 @@
 # OCRFlux-3B 完整validation推理
 
-日期：2026-10-30启动，2026-10-31复核（Asia/Shanghai）；服务器日志使用UTC。原run已失败停止、32篇/430页保留；**10月31日19:43已同协议新run恢复推理**，见 [恢复实验](2026-10-31-ocrflux-profiling-recovery.zh-CN.md)。尚未完成/评分，历史阶段状态保留下文。
+日期：2026-10-30启动，2026-11-08完成复核（Asia/Shanghai）；服务器日志使用UTC。原run失败后保留32篇/430页，同协议恢复run已完成935篇/13,871页推理及两组导出。2026-11-09 状态索引补记：两组评分已于 11 月 8 日完成核验，见 [正式评分记录](2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md)。详见 [恢复实验及完成核验](2026-10-31-ocrflux-profiling-recovery.zh-CN.md)，历史阶段状态保留下文。
 
 ## 目的与固定协议
 

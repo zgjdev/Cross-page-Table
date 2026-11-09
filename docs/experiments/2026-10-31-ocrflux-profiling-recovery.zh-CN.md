@@ -1,6 +1,6 @@
 # OCRFlux 显存profiling失败排查与同协议恢复
 
-日期：2026-10-31（Asia/Shanghai，日志UTC）。当前状态：**同协议断点恢复成功，正在GPU推理**，尚未全量完成。用户明确授权“排查一下问题然后继续”。
+日期：2026-10-31启动，2026-11-08复核（Asia/Shanghai，日志UTC）。当前状态：**全量推理、配对导出及两组正式评分均已完成**。2026-11-09 状态索引补记，评分结果及 11 月 8 日核验证据见 [正式评分记录](2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md)。用户明确授权“排查一下问题然后继续”。历史运行阶段状态保留下文。
 
 ## 问题、证据与结论边界
 
@@ -71,3 +71,23 @@ supervisor仍active/running、MainPID355605，attempt元数据仅001，原恢复
 GPU0空余35,739MiB、利用率99%，高于8192保护线。当前run无最终summary或export-complete，全量尚未完成、尚无正式评分。恢复后123.4827小时新增9,441完整页，平均76.456页/小时，剩余4,000页线性外推52.32小时，约2–3天，不包括后续两组CPU评分。文档差异和共享资源会改变速度。
 
 本轮只读服务器已有产物、进程及GPU，未改变运行代码、协议、参数或任务。进度记录写回本地三层文档；后续继续查同一supervisor和旧/新run检查点并集，完成后再全面核验覆盖、文件SHA及评分。
+
+## 2026-11-07 06:03:55 UTC（北京时间14:03）进度检查
+
+同一supervisor active/running、MainPID355605、attempt001，实际run为20261031T114000Z-ocrflux-resume-a001。新旧检查点并集881/935篇、12,995/13,871页终态（93.68467%），较11月5日增加202篇/3,124页。检查点文档身份、预期页数、protocol、冲突及保存pages数量检查无异常，本轮未重算全部文件SHA。
+
+累计12,294页ok、701页error，其中682生成截断、18 JSON解析、1 AttributeError。当前PMC12196750共26页，前9页均ok，尚未计入完整文档/页面进度；native.log最新已保存页8请求28.23秒、error=null。GPU0空余43,337MiB、利用率42%，仍高于8192MiB保护线。当前没有最终summary或export-complete，推理和评分均未宣称完成。
+
+自恢复启动162.3797小时新增12,565完整页，均速77.3804页/小时。剩余54篇876页，线性外推约11.32小时，粗估半天左右；最终导出、完整覆盖/哈希核验及两组CPU评分另计。输入长短、共享GPU负载可能改变速度。本次仅只读核查服务器并更新本地三层记录，后续继续核验该supervisor与全量导出完成状态。
+
+## 2026-11-08 00:08北京时间完成核验（11月7日16:08 UTC）
+
+实际run `20261031T114000Z-ocrflux-resume-a001` 已完成，根summary.status=completed、completed_documents=935、pages=13,871、resumed_documents=32。外层attempt-001 exit.returncode=0、ended_utc=2026-11-07T15:56:19.948244+00:00（北京时间11月7日23:56:19）；supervisor completed.json指向同run。unit inactive/dead、MainPID0、ExecMainStatus0。恢复期间仅attempt001，任务已自然结束。
+
+旧run和当前run检查点按文档合并、相同引用去重后共935/935篇及13,871/13,871页，文档身份、预期页数、protocol、冲突及保存pages数量检查无异常，无未完成文档。页面终态ok13,142、error729，其中710生成截断、18 JSON解析、1 AttributeError。所有失败按冻结协议保留。
+
+最终adapted/两组page-results.jsonl各13,871条，按冻结完整图像ID集合独立核验missing=0、extra=0、duplicate=0。no_merge/document-tables.jsonl共3,223条，merged共2,563条。这是候选表计数，恢复正确率仍待统一评分器计算。
+
+export-complete.json状态completed，其adapted_audit_sha为 `93a29e92e3fa8c2a843e987f0e84c17e5343bb07d24bff961e67cc4ab2cd1e15`，与当前adapted/audit.json重算SHA一致。对audit列出的936个输入文件（清单及逐文档保存结果）、6个输出文件逐项重新计算SHA全部匹配；所有解析行完整。本轮没有独立重算全部checkpoint引用的raw请求与PDF等文件；原完整入口在每篇checkpoint发布和最终导出前执行其引用文件SHA核验，已正常通过并完成导出。
+
+本轮仅只读核查服务器产物与状态，更新本地记录。正式两组CPU评分尚未启动，当前不能报告OCRFlux全量GriTS/内容exact。下一步复用本run的adapted/input-manifest.jsonl及no_merge、merged目录离线评分，核验truth/gold和输入协议后使用新评分输出目录，保留GPU产物。原32篇已复用完成，无需再跑GPU。
