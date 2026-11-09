@@ -97,3 +97,15 @@ def test_bundle_rejects_missing_sample_instead_of_silently_skipping(tmp_path):
     sample["samples"].append({"group_id": "PMC9-table-1"})
     with pytest.raises(ValueError):
         write_audit_bundle(tmp_path, output, inputs, targets, sample)
+
+
+def test_coordinate_board_preserves_the_bottom_of_crop_thumbnail(tmp_path):
+    image, output, inputs, targets, sample = fixture_bundle(tmp_path)
+    Image.new("RGB", (160, 240), "red").save(image, quality=100)
+    inputs[0]["fragments"][0]["image_sha256"] = hashlib.sha256(image.read_bytes()).hexdigest()
+    write_audit_bundle(tmp_path, output, inputs, targets, sample)
+    with Image.open(output / "review/coordinates/PMC1-table-0.png") as board:
+        # Header 30 + crop offset 399 + its last row 229 must remain inside the tile.
+        assert board.height > 658
+        assert board.getpixel((205, 658))[0] > 240
+        assert board.getpixel((205, 658))[1] < 10

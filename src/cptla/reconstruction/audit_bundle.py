@@ -127,7 +127,7 @@ def write_audit_bundle(
                 draw.rectangle(box, outline="red", width=max(3, image.width // 220))
                 overlay.thumbnail((390, 340))
                 small_crop = ImageOps.contain(crop, (390, 230))
-                tile = Image.new("RGB", (410, 620), "#eeeeee")
+                tile = Image.new("RGB", (410, 650), "#eeeeee")
                 painter = ImageDraw.Draw(tile)
                 painter.text((10, 5), label, fill="black")
                 tile.paste(overlay, ((410 - overlay.width) // 2, 30))
@@ -139,10 +139,10 @@ def write_audit_bundle(
         if tiles:
             columns = min(3, len(tiles))
             rows = (len(tiles) + columns - 1) // columns
-            board = Image.new("RGB", (columns * 410, rows * 620 + 30), "white")
+            board = Image.new("RGB", (columns * 410, rows * 650 + 30), "white")
             ImageDraw.Draw(board).text((10, 8), group_id, fill="black")
             for number, tile in enumerate(tiles):
-                board.paste(tile, ((number % columns) * 410, (number // columns) * 620 + 30))
+                board.paste(tile, ((number % columns) * 410, (number // columns) * 650 + 30))
             _save_png(board, review / "coordinates" / f"{group_id}.png")
             coordinate_html = (
                 f'<p><a href="../coordinates/{group_id}.png">原页红框与裁剪坐标核验图</a></p>'
