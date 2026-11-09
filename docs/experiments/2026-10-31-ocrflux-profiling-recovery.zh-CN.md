@@ -1,0 +1,93 @@
+# OCRFlux 显存profiling失败排查与同协议恢复
+
+日期：2026-10-31启动，2026-11-08复核（Asia/Shanghai，日志UTC）。当前状态：**全量推理、配对导出及两组正式评分均已完成**。2026-11-09 状态索引补记，评分结果及 11 月 8 日核验证据见 [正式评分记录](2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md)。用户明确授权“排查一下问题然后继续”。历史运行阶段状态保留下文。
+
+## 问题、证据与结论边界
+
+原run `20261030T032500Z-ocrflux-val-full` 已在32篇/430页后停止，第33篇PMC10285071共13页，在LLM初始化中发生AssertionError、没有任何页面请求。详见 [原实验记录](2026-10-30-ocrflux-full-val-inference.zh-CN.md)。
+
+只读检查实际安装的 `.venvs/20261029T162200Z-ocrflux/lib/python3.11/site-packages/vllm/worker/worker.py`：142–168行在模型加载前创建baseline_snapshot，204–271行进行profile和KV预算，273–283行以torch.cuda.mem_get_info获取**整卡**已用显存，要求baseline_snapshot.cuda_memory小于profile后cuda_memory。源码274–275行明确假设其他同卡进程在profiling期间不改变显存。
+
+原失败采样从33,683,668,992降到32,503,431,168字节，下降1,180,237,824字节（约1.10GiB），违反此假设；日志显示7.1542GB权重已加载，失败发生在profiling断言而非数据读取、页面生成或评分。由此确定直接触发机制是整卡显存采样不满足单调增长断言；其他进程释放显存是合理解释，但无法回溯逐进程历史分配，具体释放来源仍属推断。没有CUDA OOM证据，也不据此认定模型预测逻辑错误。
+
+本次检查GPU0空余40,661MiB，已有其他用户进程；Linger=yes，无运行中的本项目user service。没有读取项目根目录之外的服务器文件，没有终止其他用户进程。
+
+## 修复方式：外层有限恢复，不改推理协议
+
+新增 `scripts/run_ocrflux_recovery.py`、`src/cptla/evaluation/ocrflux_recovery.py` 和4项测试。保留原full-source-v3、vLLM安装文件、模型、环境、max_tokens、seed、提示及评分公式。没有绕过vLLM显存断言，也没有在原失败目录覆盖数据。
+
+只有子任务summary同时满足status=failed、pages=0、documents=[]，raw请求数0，且error精确匹配显存profiling AssertionError前缀，才允许恢复。等待5次间隔5秒的显存采样，均至少30,000MiB且波动不超过512MiB；最长等待120秒。新RUN_ID执行同一冻结入口，旧检查点由原恢复机制执行SHA核验；每次失败目录保留并加入不重复的resume链。每篇最多3次恢复、累计最多20次；其他错误、缺失summary或等待超限直接停止，不无限重试。
+
+恢复初次会复用旧32篇。之后如果某次运行新增检查点后再次因同类初始化错误中断，只恢复这些新检查点和原链；不更改原生成失败38页的终态。完整run结束仍按原两组适配导出，正式评分另行执行。外层恢复只处理运行可靠性，不作为算法增益。
+
+## 测试与源码部署
+
+先运行缺失模块测试得到失败，再实现纯分类与计数。增加真实CLI模拟验证已知失败才启动、未知错误不启动，以及阶段已有请求/输出时拒绝重试、逐文档与累计次数上限。4项新增测试本地与服务器通过；本地含原OCRFlux/恢复相关测试共33项通过，ruff通过。
+
+独立只读复核按requesting-code-review进行。隔离部署根 `artifacts/ocrflux-recovery/20261031T114000Z/source/`，原冻结推理源码仍 `artifacts/ocrflux-prep/20261030T015400Z/full-source-v3/`。首次测试隔离副本缺少evaluation初始化依赖contracts而未能导入，新增同版本支持文件后通过，失败现场保留。不是GPU推理失败。
+
+预计supervisor ID `20261031T114000Z-ocrflux-resume`，每个实际推理run追加-a001、-a002等。启动/实际PID/恢复与首条请求证据将在下方追加，不以测试通过冒称任务运行中。
+
+## 11:41:08 UTC（北京时间19:41:08）恢复任务启动
+
+独立复核未发现启动阻塞，确认恢复链、独占写入与重试边界；纯函数测试复核通过。建议的多次连续失败集成覆盖属后续非阻塞改进，当前已有新旧协议恢复及原任务实际恢复证据，不据此宣称所有未来资源故障均能恢复。
+
+unit `paper-ocrflux-recovery-20261031T114000Z.service`，初始父PID355605，active。命令：`.venvs/eval312/bin/python -u artifacts/ocrflux-recovery/20261031T114000Z/source/scripts/run_ocrflux_recovery.py --project /data01/public/zhengguojie/paper --supervisor-id 20261031T114000Z-ocrflux-resume`；PYTHONPATH显式指向该隔离source/src，由user systemd托管，Linger=yes。
+
+事件 `artifacts/ocrflux-recovery/20261031T114000Z/events.log`；恢复日志 `logs/ocrflux-recovery/20261031T114000Z-ocrflux-resume/`，supervisor.json记录策略，attempt-NNN.json记录完整原生命令/显存采样/源失败目录/次数/进程快照，attempt-NNN.log为对应原全量入口日志。实际结果根 `artifacts/ocrflux-document-runs/20261031T114000Z-ocrflux-resume-aNNN/`。未新建定期Agent监控，有限恢复是运行进程内部的错误处理。
+
+本次不下载数据，不改原数据/结果，GPU仍仅0；启动前快照40,661MiB空余且有其他进程，逐请求8192MiB保护沿用原worker。外层无新随机算法，模型/data/input赛道/生成/评分/源码均同原run。原32篇恢复及新请求成功仍待后续核验。
+
+## 11:43:54 UTC（北京时间19:43:54）实际恢复与GPU预测验收
+
+首个实际run `20261031T114000Z-ocrflux-resume-a001` 已开始，run-manifest的protocol字典与旧run完全相同，resume明确指向旧run。旧32篇共430页，2,726个checkpoint文件引用已通过原run_batch恢复入口SHA核验，之后新run-manifest才发布并进入worker；不是只按文件名跳过。
+
+新run的documents/仅有PMC10285071，证明未重跑已完成32篇；该第33篇13页图像PDF打包审计通过。native.log显示memory profiling完成4.80秒、引擎初始化完成7.15秒；页0耗时19.95秒、页1耗时18.52秒，当前前3页均终态ok，原始响应完整保存。原38页截断未重算、未调整生成上限。
+
+unit仍active/running、MainPID355605，GPU0快照空余24,747MiB、利用率100%，高于8192保护线。最终验收证据 `logs/ocrflux-recovery/20261031T114000Z-ocrflux-resume/startup-check.json`；当前attempt-001.json及attempt-001.log保存完整命令和资源采样。没有发生本次a001再次初始化失败，后续同类失败的有限重试仅由进程内部执行；未创建定期Agent监控。
+
+恢复层代码本地commit `5e0a89e`，身份zgjdev；服务器使用隔离恢复source，不改旧冻结推理源码或仓库分支。当前累计完整文档检查点仍32篇/430页，第33篇尚未全部完成，不能把3个新页称为新增完整文档。任务依赖服务器systemd+Linger运行，关闭当前电脑/对话不直接影响；资源竞争仍可能发生，有限重试不保证未来无中断。全量完成后仍需覆盖/哈希/两组CPU评分验收，当前无正式指标。
+
+## 2026-11-01 11:21:17 UTC（北京时间19:21）进度检查
+
+supervisor仍active/running、MainPID355605，attempt元数据仅001，原恢复run `20261031T114000Z-ocrflux-resume-a001` 持续执行，没有新增失败后恢复。旧32篇检查点与当前新增检查点按document_id合并、重复只接受完全相同的result引用，累计150/935篇、2,254/13,871页终态（16.2497%）；恢复以来新增118篇/1,824页。
+
+逐个检查点的文档身份、预期页数、协议一致性、冲突及最终pages数量未发现异常。此轮未重算全部PDF/raw文件SHA，不代替最终完整性验收。累计2,102页status=ok、152页error：150项Generation truncated or incomplete、1项JSON Invalid escape、1项JSON Unterminated string。以上错误按冻结协议保留，未重试或改生成参数。detect:ok1878、merge:ok98、detect:error2、merge:error3仅是接口终态统计，不是正确率，尚未正式评分。
+
+当前未完成文档PMC10546020共22页，页0终态ok，不计入上述完整文档/页面进度。native日志11:20:43 UTC profiling完成、11:20:45引擎初始化完成，随后页0请求19.5453秒、error=null；当前user service和实际日志均表明继续运行。raw文件mtime异常显示2024-12-09，不与当前UTC日志一致，因此本轮不以文件mtime推断任务停滞或最新输出时间；未改时间戳。GPU0当前空余42,153MiB、利用率40%，高于8192MiB保护线，快照不代表独占资源。
+
+自supervisor启动约23.669小时，新增完整页1,824，平均约77.06页/小时；剩余11,617页按这一段吞吐线性外推约150.75小时，即约6–7天，不包含之后两组CPU评分。文档长度、生成截断耗时、共享GPU负载与后续恢复都可能改变速度，不能作完成承诺。
+
+本轮只读访问服务器已有产物/进程/GPU，未重启、停止、修改代码/协议/数据或创建监控；仅本地更新三层进度记录。后续继续从supervisor最新attempt和新旧检查点并集恢复进度，不能只数a001目录而遗漏原32篇，也不能把失败页称为成功页。
+
+2026-11-03 14:02（北京时间），OCRFlux a001仍运行（PID355605），原任务与恢复任务合计366/935篇、5,158/13,871页已保存检查点（37.19%），较上次增加216篇、2,904页。4,862页成功、296页报错（290截断、5 JSON解析、1 AttributeError）。当前PMC11022528已有4/11页，未计入上述总数。恢复以来平均约71页/小时，余约122小时，不含评分。本次只读统计，未重算文件哈希。
+
+## 2026-11-05 15:10:06 UTC（北京时间23:10）进度检查
+
+同一supervisor active/running、MainPID355605，attempt仅001，恢复run仍20261031T114000Z-ocrflux-resume-a001。原run和当前run按文档合并检查点累计679/935篇、9,871/13,871页终态（71.16286%）；相比11月3日增加313篇/4,713页。逐检查点身份/预期页数/protocol/冲突与保存pages数量核验无异常，本轮未重算全部文件SHA，不代替最终哈希验收。
+
+累计9,315页status=ok、556页error，其中543生成截断、12 JSON解析、1 AttributeError。当前文档PMC11695376共19页，17页终态（16成功、1截断），仍待后续页与跨页处理，不计入上述完整文档及页面统计。native.log持续记录页面请求，最近已保存页16 elapsed81.94秒、error=null；页12生成截断耗时256.55秒，按原协议保留。
+
+GPU0空余35,739MiB、利用率99%，高于8192保护线。当前run无最终summary或export-complete，全量尚未完成、尚无正式评分。恢复后123.4827小时新增9,441完整页，平均76.456页/小时，剩余4,000页线性外推52.32小时，约2–3天，不包括后续两组CPU评分。文档差异和共享资源会改变速度。
+
+本轮只读服务器已有产物、进程及GPU，未改变运行代码、协议、参数或任务。进度记录写回本地三层文档；后续继续查同一supervisor和旧/新run检查点并集，完成后再全面核验覆盖、文件SHA及评分。
+
+## 2026-11-07 06:03:55 UTC（北京时间14:03）进度检查
+
+同一supervisor active/running、MainPID355605、attempt001，实际run为20261031T114000Z-ocrflux-resume-a001。新旧检查点并集881/935篇、12,995/13,871页终态（93.68467%），较11月5日增加202篇/3,124页。检查点文档身份、预期页数、protocol、冲突及保存pages数量检查无异常，本轮未重算全部文件SHA。
+
+累计12,294页ok、701页error，其中682生成截断、18 JSON解析、1 AttributeError。当前PMC12196750共26页，前9页均ok，尚未计入完整文档/页面进度；native.log最新已保存页8请求28.23秒、error=null。GPU0空余43,337MiB、利用率42%，仍高于8192MiB保护线。当前没有最终summary或export-complete，推理和评分均未宣称完成。
+
+自恢复启动162.3797小时新增12,565完整页，均速77.3804页/小时。剩余54篇876页，线性外推约11.32小时，粗估半天左右；最终导出、完整覆盖/哈希核验及两组CPU评分另计。输入长短、共享GPU负载可能改变速度。本次仅只读核查服务器并更新本地三层记录，后续继续核验该supervisor与全量导出完成状态。
+
+## 2026-11-08 00:08北京时间完成核验（11月7日16:08 UTC）
+
+实际run `20261031T114000Z-ocrflux-resume-a001` 已完成，根summary.status=completed、completed_documents=935、pages=13,871、resumed_documents=32。外层attempt-001 exit.returncode=0、ended_utc=2026-11-07T15:56:19.948244+00:00（北京时间11月7日23:56:19）；supervisor completed.json指向同run。unit inactive/dead、MainPID0、ExecMainStatus0。恢复期间仅attempt001，任务已自然结束。
+
+旧run和当前run检查点按文档合并、相同引用去重后共935/935篇及13,871/13,871页，文档身份、预期页数、protocol、冲突及保存pages数量检查无异常，无未完成文档。页面终态ok13,142、error729，其中710生成截断、18 JSON解析、1 AttributeError。所有失败按冻结协议保留。
+
+最终adapted/两组page-results.jsonl各13,871条，按冻结完整图像ID集合独立核验missing=0、extra=0、duplicate=0。no_merge/document-tables.jsonl共3,223条，merged共2,563条。这是候选表计数，恢复正确率仍待统一评分器计算。
+
+export-complete.json状态completed，其adapted_audit_sha为 `93a29e92e3fa8c2a843e987f0e84c17e5343bb07d24bff961e67cc4ab2cd1e15`，与当前adapted/audit.json重算SHA一致。对audit列出的936个输入文件（清单及逐文档保存结果）、6个输出文件逐项重新计算SHA全部匹配；所有解析行完整。本轮没有独立重算全部checkpoint引用的raw请求与PDF等文件；原完整入口在每篇checkpoint发布和最终导出前执行其引用文件SHA核验，已正常通过并完成导出。
+
+本轮仅只读核查服务器产物与状态，更新本地记录。正式两组CPU评分尚未启动，当前不能报告OCRFlux全量GriTS/内容exact。下一步复用本run的adapted/input-manifest.jsonl及no_merge、merged目录离线评分，核验truth/gold和输入协议后使用新评分输出目录，保留GPU产物。原32篇已复用完成，无需再跑GPU。

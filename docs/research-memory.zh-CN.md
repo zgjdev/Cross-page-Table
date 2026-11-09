@@ -1,6 +1,6 @@
 # 跨页表格恢复研究长期记忆
 
-最近检查：2026-10-23 05:16 UTC。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
+最近文档更新：2026-11-09（北京时间），形成跨页联合结构重建研究方案及实验决策规范；本轮只检查 Git 与编写/同步文档，无新实验。最近正式结果核验仍为 2026-11-08 12:32，OCRFlux推理及两组正式评分完成，1,916输入与6结果SHA复核一致。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
 
 ## 每次接手先做什么
 
@@ -9,6 +9,120 @@
 3. 对照本文件“当前状态/下一步”，只以可核验证据更新状态；不根据旧对话推测已完成下载、训练或评估。
 
 ## 当前研究状态
+
+- **2026-11-09 方案归档与同步核验。**主体提交 `cbb56b9` 使用 `zgjdev <zhengguojie0922@gmail.com>`，包含完整方案及其依赖的历史结果/进度记录。GitHub `origin/codex/paddle-merge-compat`、本地 HEAD 和服务器同名工作分支已核验同为 `cbb56b942768bf55dc363046343816cb91d8524d`，方案 Git blob 同为 `d7a02ccb8070848ee45b494b6c0e6df0f2f6209e`。服务器从 `006da59` fast-forward，同时取得此前本地已提交的 OCRFlux 代码历史；受保护数据目录变更清单为空，工作区干净。本条为后续留痕补记，将另行同步；未修改 main、未启动新任务。
+
+- **2026-11-09 当前技术路线统一入口。**[联合结构重建研究方案 v1](plans/2026-11-09-cross-page-joint-reconstruction-research-plan.zh-CN.md) 已写明数据协议、可学习共同列结构、可编辑整表网格、Qwen3-VL-2B LoRA 主候选、强基线、训练预算、G0–G6 关口和失败纠偏。目标是 CV 顶会所需的可验证方法贡献，效果及录用均不预设。先前规则/MLP/仅关联 Transformer 作为对照，历史建议保留。下一步先做 train 数据/评分审计与可修复空间诊断，再决定是否训练。尚未下载新骨干、实现新方法或启动新任务；预期门槛是研发决策标准，不是已取得分数。官方 val 已反复观察，train 内按文档/近重复簇划分 fit/dev/confirm，test 封存。
+
+- **2026-11-09 联合纠错能力修正。**仅列匹配和表头处理的 Transformer 仍主要解决关联，尚未落实局部结构修复。目标候选应把 Paddle 输出视为可修改结构，支持行列/单元格拆并、跨格修正及可定位视觉依据。冻结识别器权重不等于冻结其预测结构。编辑表示与监督待设计，当前无实现或效果。[能力边界修正](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-联合纠错能力边界修正)
+
+- **2026-11-09 模型实现建议。**候选为固定 Paddle 上游、BGE 文本表示、小型跨片段 Transformer 与关系解码，先学习列对应和重复表头。Qwen3-VL-2B 多图 LoRA 输出整表 HTML 作为可训练强对照。细粒度标签、共同列定义及冲突解码待设计和审计，当前无 cell bbox，视觉单元格定位须另行验证。无新实现。[框架建议](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-模型实现框架建议)
+
+- **2026-11-09 核心方法定位纠偏。**规则列对齐加 DP/MLP 目前定位为诊断对照，尚无足够方法论文贡献证据。新增直接相关 OvisOCR3（2026-10-20，0.8B，图像加解析结果做两页重建及多页递归），需纳入后续新颖性与强基线核查。候选主假设为局部解析带噪下的整表结构联合推断及多页一致性，待 train 样本验证与监督设计。无新实验。[贡献复核](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-方法贡献复核与相关工作补查)
+
+- **2026-11-09 跨页重建方法候选。**固定 Paddle 未合并片段 HTML，先用列特征打分和保序动态规划对齐，再做表头与边界行处理。两层 MLP 可替换列对打分，关系图消息传递待误差和消融支持。第一步为无需训练的列对齐原型，无新实验。[方法候选](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-跨页重建方法候选)
+
+- **2026-11-09 论文输入路线建议。**先用 Full Documents 派生的同表片段图做受控重建，固定片段预测，按整表真值评分。再在固定上游的完整文档管线中替换重建器，验证收益及误连。主张范围由两层实验共同决定。无新实验。[论文定位与输入选择](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-论文定位与输入选择)
+
+- **2026-11-09 自研方案就绪度复核。**现有 Full Documents 基线及跨页清单足以开始设计。建议先固定页级识别上游，以给定同表分组的跨页片段验证列对应与重建，比较直接拼接和单模块增量，再接入完整文档。train 正负例代表性审计、细粒度派生标签、内容级泄漏核查和严格来源页评价仍待完成，均为扩大训练前的关口。无新实验。[阶段复核](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md) · [跨页清单审计](experiments/2026-09-29-pubtables-v2-val-cross-page-manifest-audit.zh-CN.md)
+
+- **2026-11-09 PubTables-v2 v4 分差核查。**v4 dots.ocr 全表无合并/合并 GriTS-Con 0.5768/0.7495，Acc-Con 均为 11.80%。项目 val 0.5078/0.5479 使用不同合并器。既有 637 条 HTML 排除与本地严格 XML 解析相关，上游现已使用容错 HTML 解析，影响需固定预测离线复评。TATR 同名 +DT 论文 0.9585/48.16%，项目 val 0.8704/38.27%，结构分也有差距。POTATR-v1.1-Pub 权重及代码已公开，论文配置映射待核验。分差、边界与后续验证见 [模型汇总的 v4 核查](reports/2026-11-09-tested-models-parameters-inputs-and-results.zh-CN.md#2026-11-09-pubtables-v2-v4-对照与分差核查)。无新推理或评分。
+
+- **2026-11-09 已测模型资料核验。**新增 `docs/reports/2026-11-09-tested-models-parameters-inputs-and-results.zh-CN.md`，汇总三款整文档与TATR裁剪表输入、公开及项目正式结果。Safetensors头部统计dots约3.04B（官方1.7B为语言骨干）、Paddle识别VLM约0.959B（另有版面组件）、TATR约28.8M。OCRFlux官方3B型号的完整模型在meta device核实共享词嵌入后为3.754B，存储张量共4.065B元素。本轮核验已有模型文件及来源，结果分数沿用已完成实验。
+
+- **2026-11-08 12:32北京时间 OCRFlux两组评分完成核验：**run20261107T162300Z-ocrflux-full-val-scores于01:52:55北京时间结束，summary completed、unit inactive/exit0，耗时约1小时31分钟。1,916输入/代码/真值SHA与6结果SHA独立重算全部一致。no_merge/merged全表Con0.535472/0.596342，跨页Con0.523772/0.588922，跨页内容exact0/4（分母983，不含来源页核验）。完整13,871页、missing/extra/duplicate0；729错误页保留，非法HTML584/505。新汇总 `docs/reports/2026-11-08-dots-paddle-ocrflux-full-val-results.zh-CN.md`，正式细节见本日paired-scores实验。当前OCRFlux任务均结束，下一步配对结果/错误来源审计，随后固定Paddle上游Popo；无需重算OCRFlux。未创建监控。
+
+- **2026-11-08 00:21:57北京时间 OCRFlux正式CPU评分已开始：**RUN_ID20261107T162300Z-ocrflux-full-val-scores，unit paper-ocrflux-scores-20261107T162300Z.service，初始父PID2703956/active；no_merge子PID2704606实际CPU98.8%，merged随后自动执行。audit通过完整935篇13,871页、两组729失败页保留、2,587全表/983跨页GT、1,916输入/代码/真值SHA。冻结评分代码与Paddle实际文件SHA相同；首次Git archive CRLF差异已在预检拦截，失败现场保留，新冻结副本用LF实际原文件通过。结果根artifacts/cross-page-scores/同RUN_ID/，事件artifacts/ocrflux-score-launchers/20261107T162300Z/events.log。无正式分数、无定期监控、Linger=yes；详见 `docs/experiments/2026-11-08-ocrflux-full-val-paired-scores.zh-CN.md`。下一步检查两组完成及最终输入/结果哈希。
+
+- **2026-11-08 00:08北京时间 OCRFlux推理及两组导出完成：**a001 summary completed、935/935篇、13,871/13,871页，resumed_documents32；supervisor completed、attempt exit0，结束11月7日15:56:19 UTC（北京时间23:56:19），unit inactive/dead、PID0。页面ok13,142/error729（710截断、18 JSON解析、1 AttributeError）。no_merge/merged各13,871页，missing/extra/duplicate均0，预测表3,223/2,563；export-complete存在，adapter audit SHA93a29e92…与marker一致，936个适配输入、6个输出SHA独立重算全部匹配。检查点身份/协议/冲突/页数无异常，本轮未独立重算全部raw/PDF检查点文件SHA。没有正式评分结果，下一步复用两组导出执行CPU评分，无需重跑GPU。实际输出根artifacts/ocrflux-document-runs/20261031T114000Z-ocrflux-resume-a001/；详细证据见恢复实验11月8日完成段。
+
+- **2026-11-07 14:03北京时间 OCRFlux进度：**a001/supervisor PID355605仍active/running，只有attempt001。新旧检查点累计881/935篇、12,995/13,871页终态（93.68%），较11月5日增加202篇/3,124页；12,294页ok、701页error（682截断、18 JSON解析、1 AttributeError）。身份/协议/冲突及保存页数检查无异常，本轮未重算全部文件SHA。当前PMC12196750共26页，前9页均ok且未计入完整检查点总数。GPU0空余43,337MiB/利用率42%。恢复后162.38小时均速77.38页/小时，余54篇/876页粗估11.32小时，最终覆盖/哈希核验与两组评分另计。export-complete未生成，下一步继续等待推理和导出完成再验收；本次仅只读检查及本地记录。证据见恢复实验11月7日段。
+
+- **2026-11-05 23:10北京时间 OCRFlux进度：**a001及supervisor PID355605仍active/running，只有attempt001。新旧检查点累计679/935篇、9,871/13,871页终态（71.16%），较11月3日新增313篇/4,713页；9,315页ok、556页error（543截断、12 JSON解析、1 AttributeError）。身份/协议/冲突及保存页数检查无异常，本轮未重算全部产物SHA。当前PMC11695376共19页，17页已有终态（16成功/1截断），未计入完整文档进度；GPU0空余35,739MiB/利用率99%。恢复后123.48小时，新增9,441页，均速76.46页/小时，剩4,000页粗估52.32小时（约2–3天，不含评分）。export-complete尚未生成，未完成/未评分。仅只读检查并本地记录，下一步继续检查同supervisor及检查点并集。证据见恢复实验11月5日段。
+
+- 2026-11-03 14:02（北京时间），OCRFlux a001仍运行（PID355605），原任务与恢复任务合计366/935篇、5,158/13,871页已保存检查点（37.19%），较上次增加216篇、2,904页。4,862页成功、296页报错（290截断、5 JSON解析、1 AttributeError）。当前PMC11022528已有4/11页，未计入上述总数。恢复以来平均约71页/小时，余约122小时，不含评分。本次只读统计，未重算文件哈希。
+
+- **2026-11-01 19:21北京时间 OCRFlux进度：**恢复run20261031T114000Z-ocrflux-resume-a001、supervisor PID355605仍active/running，只有attempt001，无新增中断/恢复。跨旧run与新run按文档合并检查点累计150/935篇、2,254/13,871页终态（16.25%），比上次新增118篇/1,824页；2,102页ok、152页error（150截断、2 JSON解析），不冒称全部成功。检查点身份/协议/冲突及页数检查无异常，本轮未重算全部产物SHA。当前PMC10546020共22页，已有页0终态ok、未计入完整文档进度；native日志11:20 UTC仍正常产出，GPU0空余42,153MiB/利用率40%。恢复后23.67小时完整页吞吐约77页/小时，余约150.75小时（约6–7天，不含评分，粗估）。文件mtime出现2024时间，与当前日志不一致，本轮不将mtime作为活跃依据。仅只读检查、未改任务、无正式分数。下一步继续检查同supervisor与完整检查点；证据见恢复实验11月1日段。
+
+- **2026-10-31 19:43:54北京时间 OCRFlux已实际恢复GPU推理：**当前run `20261031T114000Z-ocrflux-resume-a001`，supervisor unit paper-ocrflux-recovery-20261031T114000Z.service、PID355605/active；协议字典与旧run完全一致。原32篇430页、2,726个文件引用经恢复入口SHA核验跳过；新documents仅PMC10285071，前3页status=ok，初始化profiling本次通过。GPU0空余24,747MiB快照；38个旧截断终态保留，不改生成参数。完整文档进度仍32篇，第33篇未完成。恢复层代码5e0a89e，服务器隔离部署，未知错误仍停止、同类初始化失败有限恢复；新日志logs/ocrflux-recovery/20261031T114000Z-ocrflux-resume/，实际结果artifacts/ocrflux-document-runs/同前缀-a001。无定期监控、未评分，下一步检查该supervisor最新attempt和完整检查点。详见 `docs/experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md`。
+
+- **2026-10-31 19:41:08北京时间 OCRFlux有限恢复已启动：**排查实际vLLM源码确认profiling断言依赖同卡其他进程显存不变假设；外层恢复不改原full-source-v3/模型/参数，仅读取已知初始化AssertionError且raw0/pages0时换新run恢复，每篇3次/总20，稳定显存门禁、未知错误停止。本地33相关测试、服务器4新增测试与独立复核通过。unit paper-ocrflux-recovery-20261031T114000Z.service，初始PID355605/active；日志logs/ocrflux-recovery/20261031T114000Z-ocrflux-resume/，结果根使用同前缀-a001等。原32篇检查点核验/跳过及GPU恢复待验证。详见 `docs/experiments/2026-10-31-ocrflux-profiling-recovery.zh-CN.md`。无定期监控、原产物保留。
+
+- **2026-10-31 18:11北京时间 OCRFlux进度检查发现已中断：**原run20261030T032500Z-ocrflux-val-full在10月30日10:02:58 UTC（北京时间18:02:58）失败退出，unit failed/failed、MainPID0、exit1；实际运行6.63小时。保留32/935篇检查点、430/13,871页终态（3.10%），392成功、38生成finish_reason=length截断；检查点身份/页数/重复/协议检查无异常，本轮未重算全部文件SHA。第33篇PMC10285071共13页在vLLM初始化显存profiling断言失败，尚无页面预测；已用显存采样33,683,668,992→32,503,431,168字节下降，非已确认OOM，具体外部资源变化未核验。GPU0当前空余40,661MiB快照。此次仅只读核验并更新记录，没有恢复、重启、删除或改协议。下一步先排查初始化稳定性，再用同协议新RUN_ID恢复32篇检查点；38截断按原协议保留，不能凭val调参。此前一周预估不再作为当前完成时间承诺；无正式分数。详见full-val实验10月31日段。
+
+- **2026-10-30 11:26北京时间 OCRFlux全量真实GPU推理已核验：**同一run20261030T032500Z-ocrflux-val-full仍运行，冻结run-manifest确认935文档/13,871页；首篇PMC10154845共8页，页0请求21.04秒、error=null、页面终态ok。完整文档checkpoint暂0（按整文档计），不是无输出。GPU0空余15,227MiB高于8192保护线；父PID477502、systemd+Linger托管。未完成、无正式分数，不更改冻结运行代码、不创建定期监控。详见本日full-val实验末段。
+
+- **2026-10-30 11:24:57北京时间 OCRFlux全量任务已启动：**用户明确授权，RUN_ID `20261030T032500Z-ocrflux-val-full`，unit `paper-20261030T032500Z-ocrflux-val-full.service`，初始父PID477502、active。完整val935/13871、image-only、冻结full-source-v3，入口在artifacts/ocrflux-launchers/同ID/launch.py；父日志logs/ocrflux-launchers/同ID/full.log，结果artifacts/ocrflux-document-runs/同ID。GPU0启动前空余31,143MiB、Linger=yes；无定期监控。首批GPU预测待核验，不冒称已完成。详细协议/命令/恢复见 `docs/experiments/2026-10-30-ocrflux-full-val-inference.zh-CN.md`。未启动Popo或CPU正式评分。
+
+- **2026-10-30 10:14北京时间 OCRFlux全量技术READY（未启动）：**最终v3实际4页pilot及新run恢复均completed/exit0，恢复resumed_documents=1且无新GPU调用；两组表SHA一致、31产物SHA核验通过。3篇10页真实smoke及最终两组CPU评分完整，指标与v2字节相同，均1项HTML评分契约拒绝未修补；小样本非正式结果。服务器32/本地29相关测试和ruff通过，独立复核两项P1关闭。完整val935/13871输入、模型、环境、官方源码及最终代码SHA预检通过；最终证据 `artifacts/ocrflux-prep/20261030T015400Z/acceptance/final-audit-v3.json`。所有验收任务结束，GPU0空余31,143MiB快照，Linger=yes；没有全量/监控运行。启动/恢复说明 `docs/2026-10-30-ocrflux-full-validation-readiness.zh-CN.md`，冻结服务器源码full-source-v3，启动前仍需重查GPU。下一步可启动OCRFlux完整val；Popo环境仍待准备，不冒称全部模型就绪。
+
+- **2026-10-30 OCRFlux独立复核修复检查点：**发现并用失败测试复现两项P1：引擎RuntimeError被合并回调吞掉、原val词法页序导致长文档adapter失败。现已传播RuntimeError/MemoryError并按数字页序适配（保留原SHA）；复核确认两项关闭。本地29/服务器32相关测试通过。冻结源码改为full-source-v3，v3实际4页pilot+恢复unit `paper-ocrflux-entry-v3-20261030T015400Z.service` 初始PID3556047已启动，最终预检及train复用评分重验，不修改旧产物；仍未val全量。见本日实验及新readiness文档。
+
+- **2026-10-30 OCRFlux 10页真实流程及配对评分完成，实际全量入口pilot运行中：**原smoke于02:01:22 UTC完成3/3文档10/10页，页面错误0；adapter首次发现打包器image_id为stem而val为带扩展名，已保留原预测/失败现场，新增回归并修复为保持原ID。新 `train-scores-v2` 两组覆盖missing/extra/duplicate=0，均1非法HTML（模型输出问题未修复），train全表Con0.65616→0.83549、跨页Con0.57916→0.79047、跨页内容exact均0。仅3篇有意选择train，不是正式性能。实际全量入口4页pilot+新目录恢复unit `paper-ocrflux-entry-20261030T015400Z.service` 初始PID3443480已active；val只读输入/模型/官方源码完整预检通过，最终版SHA预检及pilot恢复仍待结束。未val全量。详见本日实验。
+
+- **2026-10-30 01:57 UTC左右 OCRFlux真实train验收已启动：**用户继续即同意既有设计实施；新增CPU核心/官方API入口/两组adapter，本地15测试通过，服务器隔离源码12核心测试通过。unit `paper-ocrflux-train-20261030T015400Z.service`、初始PID3302340，启动时active；输入已有3篇10页train图像PDF，不读GT。输出 `outputs/baselines/ocrflux-3b/20261030T015400Z-ocrflux-train-smoke/`，事件 `artifacts/ocrflux-prep/20261030T015400Z/events.log`。完整完成/评分/实际恢复待验收，未全量；详情见本日OCRFlux实验。
+
+- **2026-10-30 再次全量就绪核验（无新实验）：**SSH只读确认服务器HEAD006da59，scripts/src/tests没有OCRFlux或Popo正式入口/适配代码；OCRFlux最小probe summary仍passed且明确仅环境验收，未完成10页整文档测试。项目环境有OCRFlux/Paddle，无Popo独立环境；用户running service列表为空。GPU0空余31,143MiB但非独占，不能据此越过流程门禁。Paddle已有全量结果；OCRFlux/Popo尚不能全部全量启动。下一步仍是实现OCRFlux封装、train配对评分及恢复验收，本轮未启动或改变服务器任务。
+
+- **2026-10-30 OCRFlux完整流程设计检查点：**已阅读官方接口及现有评分/恢复代码，设计文档 `docs/superpowers/specs/2026-10-30-ocrflux-document-baseline-design.md` 已自审并本地提交 `91340e7`。推荐保留官方提示/API与合并顺序，增加安全解析、逐元素来源链及原始响应留存；同份页面预测导出两组评分输入。正式runner/adapter、3篇10页train smoke、配对评分、实际恢复及全量预检仍未实现/验收。本轮没有新服务器计算或GPU任务；书面设计待用户审阅，后续按批准设计实施。详见本日OCRFlux实验末段。
+
+- **2026-10-30 全量就绪询问复核：**无新结果。服务器最小probe仍passed，但scripts/src/tests尚无OCRFlux正式runner/adapter；完整10页train smoke、同页预测复用配对、来源页与评分契约、可恢复全量入口均未验收。无运行中的用户service，未启动935篇全量；环境级READY不等于全量READY。下一步是实现并验收完整小流程，不再重复安装环境。
+
+- **2026-10-30 01:02北京时间OCRFlux环境级READY：**项目环境 `.venvs/20261029T162200Z-ocrflux/` 安装完成，pip check/imports/freeze/官方CLI/PDF API通过，torch2.5.1+cu124、transformers4.50.0、vllm0.7.3，Gradio兼容约束5.23.1/0.0.22。实际单GPU probe `paper-ocrflux-probe-20261029T170000Z.service`（初始PID2563300）17:00:35–17:01:53 UTC，summary passed、exit0、已结束，真实train无表页识别33.85秒/963token、合成续接0.30秒与表重建1.38秒均通过，无eval。产物 `artifacts/ocrflux-prep/20261029T170000Z-ocrflux-runtime-probe/`；GPU显存已回到启动前31,143MiB空余。环境已可执行，不等于完整3文档smoke/全量ready：安全中间来源链封装、adapter契约、10页train smoke与可恢复全量入口仍待实现/核验。官方原parse含eval不可直接运行。无安装/GPU任务继续运行，详见本日OCRFlux实验最终验收段。
+
+- **2026-10-30 00:53北京时间修复检查点：**Torch及6项预缓存下载成功；额外flashinfer索引超时且非torch/vllm必需依赖，仅停止自建164100安装服务，保留全部日志缓存。新 `paper-ocrflux-repair-20261029T165400Z.service` 初始PID2513578，去掉可选find-links、复用缓存继续完整官方依赖；日志 `logs/ocrflux-setup/20261029T165400Z-required-deps/`，事件events-required-deps.log。仍未GPU验收，不宣称ready；详见本日OCRFlux记录。3篇10页train含2个续表正例、1个无跨页文档及4无表页已只读审计。
+
+- **2026-10-30 00:40北京时间OCRFlux依赖修复运行中：**用户授权持续配好环境；新unit `paper-ocrflux-repair-20261029T164100Z.service` 初始PID2430136，复用项目自有162200环境，改本次命令到已核验清华镜像；先固定build工具、再no-build-isolation装官方固定依赖，不改全局配置或旧结果。新日志 `logs/ocrflux-setup/20261029T164100Z-mirror-repair/`、事件 `artifacts/ocrflux-prep/20261029T164100Z/events.log`。尚未ready，需pip check/imports/CUDA/最小生成通过，不自动全量；详见本日OCRFlux实验。
+
+- **2026-10-30 00:35北京时间OCRFlux尚未ready：**只读复核162200安装任务已在00:28:26失败，summary failed、unit failed/failed、MainPID0。Conda/Poppler成功，但pip构建依赖setuptools访问pypi.org报网络不可达，非模型推理失败；尚无pip check/imports或GPU smoke。旧“安装中”为历史快照。现仅核验替代源网络、不改源或重启；下一步依赖下载修复→导入→安全解析/来源链wrapper→train smoke，不能全量。证据见 `docs/experiments/2026-10-30-ocrflux-runtime-and-smoke-readiness.zh-CN.md` 00:35段，原权重/数据/失败日志保留。
+
+- **2026-10-30 00:23北京时间 OCRFlux准备已执行：**官方代码固定c1b315a、15个模型文件全部重算哈希通过；当前独立环境安装任务 `paper-ocrflux-setup-20261029T162200Z.service`，初始PID2298669、active/running，16:21:55 UTC进入pip依赖安装，尚未完成imports/pip check。项目内Python3.11/Poppler26.10.0已创建，3篇train/10页图像PDF打包与真实Poppler渲染通过。首次162000服务仅因systemd PATH找不到Conda失败，原日志保留，新ID通过显式路径恢复准备。未GPU推理/训练/全量；源码含eval和未保留完整来源链，后续wrapper安全解析/中间证据/adapter需先测试。当前日志 `logs/ocrflux-setup/20261029T162200Z-ocrflux/`，事件 `artifacts/ocrflux-prep/20261029T162000Z/setup-162200-events.log`；详细证据/环境/命令/下一步见 `docs/experiments/2026-10-30-ocrflux-runtime-and-smoke-readiness.zh-CN.md`。不创建监控，安装不会自动启动GPU。
+
+- **2026-10-30 合并含义澄清，无新计算：**复核simple_merge与Paddle replay：当前两模型的合并均为预测表结构级的规则后处理，不是拼像素图/无条件拼接；dots同列/同表头后去首行追加，Paddle为官方规则及表头处理，compat仍同算法仅字段桥接，不重调用VLM联合识别。说明已补入两模型结果报告；不是已训练跨页关系图模型。
+
+- **2026-10-30 两个已测完整文档模型结果汇总：**只读重取dots两组/Paddle三组metrics并核对五份SHA，与历史记录一致；新增 `docs/reports/2026-10-30-dotsocr-paddle-full-val-results.zh-CN.md`，区分全表/983跨页子集、合并条件、覆盖与HTML拒绝、来源页局限。当前Paddle管线指标高于当前dots管线，但合并器/预处理/HTML风险不同，不把差异全归因模型能力；2/6/12内容exact不是已核验完整恢复数。没有新评分/推理/训练，下一模型仍OCRFlux。
+
+- **2026-10-30 计划复核（无新实验）：**按 `docs/2026-10-23-open-model-priority-and-readiness.zh-CN.md` 第1节，Paddle完成后的下一模型是OCRFlux-3B，之后为固定Paddle上游的MinerU-Popo，POTATR后置。OCRFlux/Popo主权重已在10月23日下载记录中验收，但各自独立环境、来源页adapter、train整文档smoke与GPU门禁不能据此冒称通过。先归档Paddle结果/少量来源页与错误审计，可与下一模型准备衔接，不把不断调整Paddle规则作为下一模型前提；按既定门禁通过后才全量。仍处基线阶段，未启动训练/新推理。本次仅审阅计划及更新记录。
+
+- **2026-10-30 00:04北京时间：Paddle三组评分已完成并核验。**原run 20261029T035007Z-paddle-full-val-scores于10月29日15:17:35北京时间结束，summary completed，耗时约3小时26分钟，9份结果SHA重算全部一致、service inactive/dead。三组13,871页完整；no_merge/official/compat全表GriTS-Con=0.651021738/0.700574254/0.774418507，跨页子集Con=0.672710736/0.734669528/0.806670507；跨页内容网格exact=0/6/12（分母983），不等于已核验来源页的完整恢复数。各组13非法HTML，错误页0；匹配跨页项缺来源页979/780/478。完整参数/指标/SHA/限制见 `docs/experiments/2026-10-29-paddle-full-val-three-condition-scores.zh-CN.md` 完成核验段。下一步同赛道配对比较与抽样错误/来源页审计，无需重推理/重评分；本轮未启动新任务。
+
+- **2026-10-29 05:28 UTC（北京时间13:28）评分尚未全部完成：**adapter三组已完成、覆盖13,871页/原版回放一致；no_merge评分05:02 UTC完成、耗时68.23分钟，全表GriTS-Con=0.651021738、内容网格exact=0.115191341；cross_page子集Con=0.672710736、内容网格exact=0（匹配979不等于恢复979）。官方组正在CPU评分，compat待运行；父PID1297157仍active/running，worker1777772实际CPU计算，最终summary/结果哈希尚未发布。粗估余1.5–2小时，非承诺。第一组SHA/错误与边界见 `docs/experiments/2026-10-29-paddle-full-val-three-condition-scores.zh-CN.md` 05:28段。仅只读检查、未改变任务。
+
+- **2026-10-29 03:52:33 UTC评分流水线检查点：**完整935/13,871的checkpoint/导出/GT哈希验收通过、audit.json已保存；进入三组adapter运行中，实际评分进程尚待核验，无新正式分数。66相关回归测试通过。详见本日三组评分实验；unit/PID及新目录同下条，未改变既有推理结果。
+
+- **2026-10-29 03:52 UTC（北京时间11:52）Paddle全量三组CPU评分流水线已启动：**用户明确要求评分，相关回归通过后启动 `paper-paddle-scores-20261029T035007Z.service`，初始PID1297157、active/running；先audit全部checkpoint/导出/GT哈希，再adapter及no_merge、native_merge_official、native_merge_content_compat依次完整val评分。当前audit已核验400文档/3,600文件，尚未宣称评分器已运行/新分数完成。run根 `artifacts/cross-page-scores/20261029T035007Z-paddle-full-val-scores/`，事件日志 `artifacts/paddle-score-launchers/20261029T035007Z/events.log`。只CPU、无下载/重推理/覆盖，Linger=yes，无定期监控。详见 `docs/experiments/2026-10-29-paddle-full-val-three-condition-scores.zh-CN.md`。
+
+- **2026-10-29 输入/流程说明（无新实验）：**本轮为完整文档image-only管线：数据集全页JPEG按原文档/数字页序打包无文字层PDF→PP-DocLayoutV3→PaddleOCR-VL-1.5逐页解析→官方跨页规则合并；不是GT裁剪片段拼接，也不是单个联合训练的跨页网络。官方no_merge/native_merge已保存，独立content-compatible全量CPU后处理/评分仍待执行。下一步先哈希验收再三组配对评分，复用已有预测，不重新GPU推理。本轮只解释流程，未启动评分。
+
+- **2026-10-29 03:39 UTC（北京时间11:39）Paddle全量推理已完成：**原run935/935文档、13,871/13,871页，父summary.status=completed，935个worker summary均completed且无error字段；export-complete存在，导出13,871条JSONL解析/终止换行正确，按(document_id,page_number)核验missing/extra/duplicate=0，输入SHA与冻结数字页序一致。最后文档PMC7617896于00:11:16 UTC（北京时间08:11）结束；服务inactive/dead、MainPID0。本次未重算全部checkpoint文件SHA，未得正式全量评分；下一步哈希验收、三组CPU后处理及配对评分。未启动新计算或修改服务器文件。详情见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md` 10月29日段。
+
+- **2026-10-27 15:45 UTC（北京时间23:45）Paddle全量进度：**同一run仍active/running、PID3358795；719/935文档checkpoint覆盖10,450/13,871页（75.34%），较上次增加362文档/5,455页。checkpoint解析错误/文档重复/额外/页数不一致均0。当前PMC11764768共20页，raw已完成18页[0..17]、无解析错误/尾残片，最新事件15:44:32 UTC；未计入完整checkpoint。GPU0空余34,121MiB、利用率22%。无父summary/全量正式指标；按全程均速剩余粗估31.5小时（约1–2天），不含评分，非承诺。仅更新本地记录，未改变任务。详见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md` 10月27日段。
+
+- **2026-10-25 14:31 UTC（北京时间22:31）Paddle全量进度：**同一run仍active/running、PID3358795；357/935文档checkpoint覆盖4,995/13,871页（36.01%），较上次增加249文档/3,364页。checkpoint解析错误/文档重复/额外/页数不一致均0。当前PMC11008875共15页，raw已完成5页[0..4]、无解析错误/尾残片，最新页面事件14:31:14 UTC；未计入完整checkpoint。GPU0空余18,581MiB、利用率52%。父summary尚无、无全量正式指标；按全程均速剩余粗估83.6小时（约3–4天），不含后续评分。只读检查并更新本地记录，未重启/改变任务。证据见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md` 10月25日段。
+
+- **2026-10-24 07:05 UTC（北京时间15:05）Paddle全量进度：**同一任务20261023T152753Z-paddle-val-full仍active/running、PID3358795；108/935文档已发布完整checkpoint，覆盖1,631/13,871页（约11.76%），checkpoint文档重复/额外/页数不一致均0。当前PMC10436224的9页已有8条完整raw JSONL、页序[0..7]，无解析错误/尾残片，日志07:05:33 UTC仍产出页面；该文档尚未计入完成数。GPU0空余17,343MiB、利用率55%，高于逐页8,192MiB保护线；此为整卡快照。未出最终summary/全量正式分数，未重启/修改任务。按启动以来整页吞吐粗估尚需约5天，非完成承诺。证据见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md` 的10月24日检查点。
+
+- **2026-10-23 15:30 UTC 全量GPU推理实际开始：**任务20261023T152753Z-paddle-val-full、unit `paper-paddle-full-20261023T152753Z.service`、父PID3358795仍active/running；首篇PMC10154845全8页图像PDF核验通过，raw JSONL首3页[0,1,2]完整、无尾残片；文档checkpoint目前0，恢复粒度整文档。worker明确val/image-only/seed0；Linger=yes，用户可断开客户端。完整935/13,871尚未完成、无正式分数；不安排自动监控。详细证据及恢复入口见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md`。只做文档提交同步，不修改运行中的冻结代码。
+
+- **2026-10-23 15:28 UTC Paddle全量已启动（启动预检）：**用户明确确认启动及后台保活，服务器zhengguojie Linger已从no核验为yes。任务20261023T152753Z-paddle-val-full，unit `paper-paddle-full-20261023T152753Z.service`、初始PID3358795，active/running；完整val935/13,871，启动GPU0空余39,607MiB。日志 `logs/paddle-launchers/20261023T152753Z/full.log`；run根 `artifacts/paddle-document-runs/20261023T152753Z-paddle-val-full/`。GPU首条预测待核验，不冒称已完成。详见 `docs/experiments/2026-10-23-paddle-full-val-inference.zh-CN.md`。未创建定期监控，未改原输入/官方包，任务中止可新RUN_ID恢复。
+
+- **2026-10-23 启动询问只读复核：**技术READY不变，无新结果/未启动全量；本地和服务器代码b203248，GPU0空余39,607MiB、利用率0%、仍有4个既有计算进程；无运行中的paper-paddle用户service，Linger仍no。仅回答能否启动，未擅自启动或修改系统保活。
+
+- **2026-10-23 PaddleOCR-VL-1.5 全量技术门禁 READY（未启动）：**最终代码b390273，服务器76相关测试通过、代码复审无阻塞；完整val935/13,871图片/JPEG/模型SHA/依赖/资源只读预检通过，报告 `logs/paddle-launchers/20261023T103500Z/full-val-preflight.json`。最终train四页完整入口pilot已exit0；实际恢复run104000 resumed_documents=1且无新增GPU工作，导出SHA不变并通过三组adapter。原/恢复artifact均保留。用户要求直到可启动，现停在验收点，不冒称val运行中。启动/恢复精确命令及证据在 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`。分支codex/paddle-merge-compat已同步两个远程，未合并main；Linger=no，全登录退出后持续运行需另获系统保活授权。此READY不代表OCRFlux/Popo各自门禁已过。
+
+- **2026-10-23 最终全量门禁验收运行中：**`b390273`分支已同步两个远程，服务器76测试通过；完整val只读预检ready，935/13,871全成员、模型SHA/环境/资源通过，数字页序SHA `1d39ca16b7fcfedf3dabb174c80ef4ae914d90a76a2839617a469c0ba75e90c5`。最终版train pilot `paper-paddle-full-entry-pilot-20261023T103500Z.service`初始PID1304498，输出 `artifacts/paddle-document-runs/20261023T103500Z-paddle-train-pilot/`，完成/实际恢复/导出适配待核验；尚未启动val。Linger=no，不能承诺全部登录断开仍继续，未修改系统设置。见全量readiness文档。
+
+- **2026-10-23 全量入口验收中间检查点：**新增按文档独占输出+checkpoint恢复入口，服务器初版72测试通过；train四页完整入口pilot `20261023T102500Z-paddle-train-pilot`已exit0，未运行val。只读val预检发现固定清单是词法页序，已改为保留原SHA/成员并单列数字页序派生SHA；并修复审查发现的checkpoint原子发布/导出清单再核验，复审无阻塞。最终版服务器回归、pilot恢复及完整val只读预检仍待完成。详见 `docs/2026-10-23-paddle-full-validation-readiness.zh-CN.md`；不可据初版pilot声称已ready或全量运行中。
+
+- **2026-10-23 进一步全量门禁准备：**用户要求持续推进到可开始全量推理；新CLI集成回归服务器62测试通过。额外train负例文档PMC11626747全4页（官方负对[1,2]、无正对，且两页对应不同逻辑表）已打包，GPU0门禁空余39,607MiB后启动 `paper-paddle-negative-20261023T101200Z.service`，初始PID1156473；输出 `outputs/baselines/paddleocr-vl-1.5/20261023T101200Z-paddle-train-smoke/`、launcher `logs/paddle-launchers/20261023T101200Z/smoke.log`，完成状态待核验。无val推理启动。接下来有限真实负例验证及全量按文档断点入口/固定清单预检。
+
+- **2026-10-23 10:02 UTC Paddle 三组 train 评分完成：**CPU复用6页预测；官方原版与无合并相同，全表 GriTS-Con=0.6438514；content-compatible 全表/跨页子集 GriTS-Con=0.9891835、结构网格exact=2/2、内容网格exact=0/2，两表匹配来源页均[1,2]完整。60相关测试通过、原输入及适配输出SHA全部核验不变。仅两个选定train正例，不是正式性能/负例误连率。评分 `artifacts/paddle-smoke/20261023T100300Z-three-condition-train-scores/`，详细命令/指标/限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一阶段更多train正负例审计及可恢复val入口；目前无GPU/后台评分运行、val全量未启动。
+
+- **2026-10-23 Paddle 兼容版/评分适配已实现，train 评分待执行：**用户已确认设计；新分支 `codex/paddle-merge-compat`、代码 `9e6c5fa`，服务器60测试通过，6页覆盖完整、原版回放一致，兼容版形成2个[1,2]来源组而官方保持4个页表。原始预测/官方包未改、无GPU重跑；不等于2表恢复正确。新适配产物 `artifacts/paddle-smoke/20261023T100500Z-three-condition-adapter/`，详细命令/环境/已知限制见 `docs/experiments/2026-10-23-paddle-compat-adapter-and-train-score.zh-CN.md`。下一步三组train评分，val全量未启动。
+
+- **2026-10-23 09:51 UTC Paddle 合并原因已核验：**两个 train 案例宽度/列数/边界行均通过，但续页 `figure_title` 的 Continued 被拒；PaddleX 3.4.1 合并器关键词分支读 `.text` 等字段，实际 block 文字保存在 `.content`。原类/原合并器 CPU 内存复现拒绝，仅桥接 text=content 则两例触发合并，原文件哈希不变。不是模型没识别出标题，也不代表合并网格正确。尚未修改官方包/实现补丁/评分 adapter 或启动全量。建议保留原官方基线并单列 content-compatible 修正版；设计待确认，详见 `docs/experiments/2026-10-23-paddle-native-merge-contract-audit.zh-CN.md`。
+
+- **2026-10-23 09:47 UTC Paddle GPU smoke 完成核验：**自动任务已于 09:15–09:19 UTC（北京时间 17:15–17:19）运行完 2 文档/6 页，220.57 秒，安装与 smoke 均 exit 0、inactive/dead；缺失/额外/重复为 0，4 个 table HTML 均格式可解析。两份文档 no_merge/native_merge 完全相同，官方合并没有触发；这是 train 小规模可运行性验证，不是正式跨页分数或恢复成功。GPU 0 最低空余 34,103 MiB；当前推理已结束，无需重跑。下一步核验官方合并条件/来源页与评分适配，尚不能直接声称全量门禁通过。本轮只读核验，未启动全量或新任务，详细证据/产物 SHA 见 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md` 完成段。
 
 - **2026-10-23 08:25 UTC Paddle train smoke 后台入口已启动：**`paper-paddle-smoke-20261023T082900Z.service`、初始 PID 422511，当前 `WAIT_SETUP`，不是已开始推理；安装完成后自动执行 2 文档/6 页 native 管线与 no_merge/native_merge。输入 PDF 已在服务器生成并审计，13 项相关测试通过。launcher 日志 `logs/paddle-launchers/20261023T082900Z/smoke.log`；下一步先核验安装与 smoke 实际终态/来源页、HTML/耗时，不直接启动全量。完整记录 `docs/experiments/2026-10-23-paddle-v15-runtime-and-smoke.zh-CN.md`。
 
@@ -110,3 +224,11 @@
 - 每个可验收子阶段结束、连续工作约 60 分钟、后台任务启停/状态变化、失败/方案改变、会话结束/可能中断前都要检查和更新记录；每轮结束至少核对本文件与进度索引是否仍准确。无实质变化记检查点，不编造新结果。此要求不意味着离线自动定时执行。
 - 细节与可复现证据写入 `docs/experiments/YYYY-MM-DD-任务.zh-CN.md`；进度索引追加阶段状态和链接；本文件只更新“当前状态、限制、下一步”及必要证据入口。重要更正追加勘误并保留旧证据。长任务启动即记 PID/命令/日志/输出和完成条件，结束时补记覆盖/失败/指标/校验和。
 - 仓库之外的隐式记忆不保证可读或持久；**以仓库文档、日志及原始产物为唯一跨会话恢复依据**，不访问仓库外文件来写“长期记忆”。
+
+## 2026-11-05 本地研究阶段与可行性复核
+
+仅审阅本地计划、代码和保存记录，无新实验/服务器访问。判断：完整文档基线部分完成，仍处 M0 评测复现向跨页核心方法验证过渡；不能把全文档基线运行视作 M4 自研系统完成。OCRFlux 最新保存状态仍为11月3日366/935篇，当前实时状态待核验。主要缺口为细粒度派生标签审计、严格来源页/误合并评价、自研方法与消融；建议固定上游先验证跨页结构贡献。完整证据与边界见 [阶段复核](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md)。无新结果，未改变服务器任务。
+
+## 2026-11-06 2B–4B候选模型补查
+
+只读核验官方模型页/论文，新增 [候选报告](reports/2026-11-06-small-vlm-cross-page-candidates.zh-CN.md)：Qwen3-VL-2B/4B、DeepSeek-OCR-2约3B、MonkeyOCR-pro-3B、InternVL3_5-4B。区分页解析、多图输入和明确跨页合并；MonkeyOCR v1.5模块与公开权重/代码对应仍待核验。无新实验/服务器访问，不改OCRFlux→Popo既有安排，也不更新任务实时状态；下一步如选型，先固定revision及train完整文档正负例smoke。

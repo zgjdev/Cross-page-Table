@@ -160,6 +160,13 @@ def configure_cache(root):
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 
+def validate_run_identity(run_id, split):
+    condition = "train-smoke" if split == "train" else "val-full"
+    pattern = rf"[0-9]{{8}}T[0-9]{{6}}Z-paddle-{condition}(?:-PMC[0-9]+)?"
+    if split not in ("train", "val") or not re.fullmatch(pattern, run_id):
+        raise ValueError("Run ID does not match the explicit data split")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, required=True)
@@ -167,10 +174,9 @@ def main():
     parser.add_argument("--layout-model", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--split", choices=("train", "val"), default="train")
     args = parser.parse_args()
-
-    if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-paddle-train-smoke", args.run_id):
-        parser.error("Invalid timestamped smoke run ID")
+    validate_run_identity(args.run_id, args.split)
     project = Path("/data01/public/zhengguojie/paper").resolve()
     for path in (args.inputs, args.vl_model, args.layout_model):
         if not path.resolve().is_relative_to(project) or not path.is_dir():
@@ -190,6 +196,9 @@ def main():
     inputs = args.inputs.resolve()
     manifest_path = inputs / "packing-manifest.json"
     manifest = json.loads(manifest_path.read_text())
+    expected_images = project / "data/pubtables-v2/extracted/Full Documents" / args.split / "images"
+    if Path(manifest["source_images"]).resolve() != expected_images.resolve():
+        raise ValueError("Packed source image directory does not match the requested split")
     if (
         manifest["pdf_text_audit"] != "empty"
         or manifest["embedded_image_audit"] != "byte-identical"
@@ -218,7 +227,8 @@ def main():
             "versions": versions,
             "seed": 0,
             "input_track": "image-only",
-            "split": "train",
+            "split": args.split,
+            "run_id": args.run_id,
             "data_revision": "aa575e798cb00a296925e2086addb3e3fd9a1903",
             "input_manifest": str(manifest_path),
             "input_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
