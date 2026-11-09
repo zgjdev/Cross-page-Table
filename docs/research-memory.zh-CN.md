@@ -10,6 +10,10 @@
 
 ## 当前研究状态
 
+- **2026-11-09 G0 工具本地实现。**新分支 `codex/reconstruction-data-audit` 已实现 train 清单/输入标签隔离、暂定文档簇划分、200/20 分层抽样及服务器侧静态预览。47 项相关测试通过，1 项 Windows 符号链接权限跳过，Ruff 通过；独立审查及服务器 smoke 尚待完成。划分为 `provisional_do_not_train`，无预测、无 GPU。下一步小范围 smoke 后生成完整 train 审计材料，不能宣称 G0/G1 已通过。[实验与实施证据](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
+
+- **2026-11-09 16:03 北京时间启动就绪性只读核验。**服务器 HEAD 为 `6ee8fcb` 且工作区干净，train/images 110,347 文件、tables 与页对标注各 7,359 文件，三份 train 标注可解析并重算 SHA。可开始 G0 的 train 数据/评价准备。重建专用清单、模块和配置尚不存在；现有 val 清单脚本不可直接改路径用于 train。G0/G1 尚未通过，未启动训练、下载或 GPU 任务，也未核验实时 GPU 资源。下一步实现 train 内划分/片段清单与输入标签隔离，做 20 例坐标核验，再准备 200 表审计及简单基线。[就绪性记录](experiments/2026-11-09-joint-reconstruction-startup-readiness.zh-CN.md)
+
 - **2026-11-09 方案归档与同步核验。**主体提交 `cbb56b9` 使用 `zgjdev <zhengguojie0922@gmail.com>`，包含完整方案及其依赖的历史结果/进度记录。GitHub `origin/codex/paddle-merge-compat`、本地 HEAD 和服务器同名工作分支已核验同为 `cbb56b942768bf55dc363046343816cb91d8524d`，方案 Git blob 同为 `d7a02ccb8070848ee45b494b6c0e6df0f2f6209e`。服务器从 `006da59` fast-forward，同时取得此前本地已提交的 OCRFlux 代码历史；受保护数据目录变更清单为空，工作区干净。本条为后续留痕补记，将另行同步；未修改 main、未启动新任务。
 
 - **2026-11-09 当前技术路线统一入口。**[联合结构重建研究方案 v1](plans/2026-11-09-cross-page-joint-reconstruction-research-plan.zh-CN.md) 已写明数据协议、可学习共同列结构、可编辑整表网格、Qwen3-VL-2B LoRA 主候选、强基线、训练预算、G0–G6 关口和失败纠偏。目标是 CV 顶会所需的可验证方法贡献，效果及录用均不预设。先前规则/MLP/仅关联 Transformer 作为对照，历史建议保留。下一步先做 train 数据/评分审计与可修复空间诊断，再决定是否训练。尚未下载新骨干、实现新方法或启动新任务；预期门槛是研发决策标准，不是已取得分数。官方 val 已反复观察，train 内按文档/近重复簇划分 fit/dev/confirm，test 封存。

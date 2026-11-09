@@ -1,5 +1,9 @@
 # 项目研究进度
 
+2026-11-09 启动 G0 实施，本地完成 train 清单、独立目标文件、保守文本重复簇与暂定划分、分层抽样、原图裁剪与 GT 审计预览。相关测试 47 passed/1 Windows symlink skipped，Ruff 通过；未启动服务器生成任务或 GPU。等待独立审查，再执行 20 文档 smoke 和完整 train 清单。当前无模型分数，划分及审核状态明确未放行。[实验记录](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
+
+2026-11-09 16:03 北京时间完成新路线首阶段只读就绪核验。服务器 train 有 110,347 图像文件、7,359 文档表标注及同数页对文件；抽查三份 train 标注的格式与 SHA，通过 CPU Python 3.12.7 读取。尚未验收裁剪坐标或全量数据完整性。新重建入口/模块/配置未实现，现有脚本硬编码 val，不能换路径直接当 train 入口。结论为可以开始 G0 准备与小规模验证，尚不能直接训练。无新预测/评分、未使用 GPU、未修改服务器数据。[详细核验与下一步](experiments/2026-11-09-joint-reconstruction-startup-readiness.zh-CN.md)
+
 2026-11-09 方案同步完成核验。主体提交 `cbb56b942768bf55dc363046343816cb91d8524d`，作者 zgjdev；本地、GitHub 当前分支和服务器工作分支 `codex/paddle-merge-compat` 的 HEAD 一致，方案 blob 均为 `d7a02ccb8070848ee45b494b6c0e6df0f2f6209e`，两端工作区干净。同步含此前本地已提交的 OCRFlux 历史，服务器采用 fast-forward；更新范围不含 data/artifacts/outputs/logs/checkpoints/models，main 未改。13 份相关 Markdown 的文件链接、锚点和代码块检查通过，提交前 diff 检查通过。此条记录上述已核验主体提交，留痕补记随后同分支同步，不代表运行了新实验。
 
 2026-11-09 形成 [跨页联合结构重建研究方案与实验决策规范](plans/2026-11-09-cross-page-joint-reconstruction-research-plan.zh-CN.md)。规定 R0/R1/D0 受控到全文档协议、共同列槽与可编辑网格、监督来源及掩码、同骨干多图 SFT/OvisOCR3/Popo 强对照、统计和评分冻结、G0–G6 预设门槛、失败纠偏及模块实施清单。下一步首先审计 train 真实片段、标签及可修复空间，不直接开始全量训练。本轮是研究设计与文档同步，无新模型结果。既有阶段记录及已完成 Paddle/OCRFlux 评分记录一并纳入版本控制，以保证方案引用可恢复。

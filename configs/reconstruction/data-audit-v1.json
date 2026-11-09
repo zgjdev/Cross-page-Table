@@ -1,0 +1,11 @@
+{
+  "schema_version": "reconstruction-data-audit-v1",
+  "dataset_revision": "aa575e798cb00a296925e2086addb3e3fd9a1903",
+  "source_split": "train",
+  "protocol": "R0_oracle_gt_parts_and_grouping",
+  "seed": 20261109,
+  "sample_size": 200,
+  "coordinate_size": 20,
+  "training_allowed": false,
+  "split_status": "provisional_do_not_train"
+}
