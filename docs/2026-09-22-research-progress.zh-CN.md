@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-11-09 方案同步完成核验。主体提交 `cbb56b942768bf55dc363046343816cb91d8524d`，作者 zgjdev；本地、GitHub 当前分支和服务器工作分支 `codex/paddle-merge-compat` 的 HEAD 一致，方案 blob 均为 `d7a02ccb8070848ee45b494b6c0e6df0f2f6209e`，两端工作区干净。同步含此前本地已提交的 OCRFlux 历史，服务器采用 fast-forward；更新范围不含 data/artifacts/outputs/logs/checkpoints/models，main 未改。13 份相关 Markdown 的文件链接、锚点和代码块检查通过，提交前 diff 检查通过。此条记录上述已核验主体提交，留痕补记随后同分支同步，不代表运行了新实验。
+
 2026-11-09 形成 [跨页联合结构重建研究方案与实验决策规范](plans/2026-11-09-cross-page-joint-reconstruction-research-plan.zh-CN.md)。规定 R0/R1/D0 受控到全文档协议、共同列槽与可编辑网格、监督来源及掩码、同骨干多图 SFT/OvisOCR3/Popo 强对照、统计和评分冻结、G0–G6 预设门槛、失败纠偏及模块实施清单。下一步首先审计 train 真实片段、标签及可修复空间，不直接开始全量训练。本轮是研究设计与文档同步，无新模型结果。既有阶段记录及已完成 Paddle/OCRFlux 评分记录一并纳入版本控制，以保证方案引用可恢复。
 
 2026-11-09 再核对跨页联合纠错的实现能力。上一候选仅具体落实关联预测，结构编辑及视觉定位尚未设计，不能直接声称实现局部结构纠错。明确需允许修订 Paddle 局部网格并记录跨页证据，后续用仅关联/结构编辑/跨页证据消融验证。无新实现或实验。[能力边界修正](reports/2026-11-05-research-stage-and-feasibility.zh-CN.md#2026-11-09-联合纠错能力边界修正)
