@@ -74,7 +74,9 @@ def test_jsonl_unicode_separators_remain_inside_record(tmp_path):
     upstream, targets = fixture(tmp_path)
     rows = [json.loads(line) for line in targets.read_text().splitlines()]
     rows[0]["html"] = HTML.replace("A", "A\u2028B\u2029C\u0085D")
-    targets.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8")
+    targets.write_text(
+        "\n".join(json.dumps(row, ensure_ascii=False) for row in rows), encoding="utf-8"
+    )
     output = runner.run(tmp_path, upstream, targets, "unicode-score")
     assert json.loads((output / "scores.json").read_text())["n_targets"] == 2
 
