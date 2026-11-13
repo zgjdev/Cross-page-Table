@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-11-13 自动化检查点：5322个暂定train_fit目标全部通过grid往返；精确文本污染发现1组train/val重复，近重复尚待核验。Paddle真实裁剪2表4片段及侧向2表9片段pilot完成；20表66片段pilot运行中，最近46/66已保存，PID2998949，完整命令/日志见实验记录。本地129测试通过/2跳过。独立人审暂无人选，保留pending；G0/G1和全量训练未放行。下一步完成20表覆盖与B0诊断，再推进强规则和可修复空间；不重跑已有数据。此条更新下方历史“无GPU任务”状态。[自动化检查与试运行](experiments/2026-11-13-reconstruction-automatic-readiness.zh-CN.md)。
+
 2026-11-13 10:47 北京时间：评分契约首轮合成核验完成，服务器21项旧测试通过；错来源或额外预测仍可得到跨页子集grid exact=1，nbsp/省略闭标签被当前解析器拒绝。旧行为已留证，未改历史评分；下一项为版本化网格与严格任务评分契约实现，G0仍未通过。无模型/GPU任务。[探针、结果与复现说明](experiments/2026-11-13-reconstruction-score-contract-preflight.zh-CN.md)。
 
 2026-11-13 同步留痕：数据验收主体提交 `fb0e40e` 已核验本地、GitHub、服务器同一功能分支 `codex/reconstruction-data-audit` 一致；main 未变，数据未纳入 Git。同步后记录补记随后提交，实验事实见 [11月13日验收记录](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)。
