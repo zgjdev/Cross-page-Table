@@ -17,6 +17,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from cptla.evaluation.pubtables_v2 import parse_full_document_image_id
 from cptla.reconstruction.data import DATASET_REVISION, PROTOCOL, TRAIN_RELATIVE_PATH
 
 MODEL = "models/20261023T064109Z-public-models/paddleocr-vl-1.5"
@@ -44,7 +45,7 @@ def failure(output, exc):
     write(
         output / "failure.json",
         {
-            "status": "failed",
+            "status": "interrupted" if isinstance(exc, KeyboardInterrupt) else "failed",
             "utc": datetime.now(UTC).isoformat(),
             "error": f"{type(exc).__name__}: {exc}",
         },
@@ -117,6 +118,17 @@ def prepare(root, inputs, run, groups):
                 source = inside(root, Path(fragment["image_relpath"]))
                 if not source.is_relative_to(image_root) or sha(source) != fragment["image_sha256"]:
                     raise ValueError("source location/SHA mismatch")
+                document_id, page_num = parse_full_document_image_id(source.name)
+                part_index = fragment["part_index"]
+                if (
+                    document_id != row["document_id"]
+                    or type(fragment["page_num"]) is not int
+                    or page_num != fragment["page_num"]
+                    or type(part_index) is not int
+                    or part_index < 0
+                    or fragment["fragment_id"] != f"{group}-part-{part_index}"
+                ):
+                    raise ValueError("fragment/image source identity mismatch")
                 box = fragment["crop_box"]
                 with Image.open(source) as image:
                     width, height = image.size
@@ -149,7 +161,7 @@ def prepare(root, inputs, run, groups):
             raise ValueError("input manifest changed during preparation")
         write(output / "prepared.json", dict(status="prepared", fragments=records))
         return output, records
-    except Exception as exc:
+    except (Exception, KeyboardInterrupt) as exc:
         failure(output, exc)
         raise
 
@@ -196,8 +208,11 @@ def infer(pipeline, output, records, guard=lambda: None):
             guard()
         summary["status"] = "completed"
         return summary
-    except Exception as exc:
-        summary.update(status="failed", error=f"{type(exc).__name__}: {exc}")
+    except (Exception, KeyboardInterrupt) as exc:
+        summary.update(
+            status="interrupted" if isinstance(exc, KeyboardInterrupt) else "failed",
+            error=f"{type(exc).__name__}: {exc}",
+        )
         failure(output, exc)
         raise
     finally:
@@ -288,7 +303,7 @@ def main():
                 raise RuntimeError("requires 8192 MiB free after loading/fragment")
 
         infer(pipeline, output, records, guard)
-    except Exception as exc:
+    except (Exception, KeyboardInterrupt) as exc:
         if not (output / "failure.json").exists():
             failure(output, exc)
         raise

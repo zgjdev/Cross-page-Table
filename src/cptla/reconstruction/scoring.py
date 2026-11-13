@@ -64,6 +64,8 @@ def score_groups(targets: list[dict], predictions: list[dict]) -> dict:
             result["failure_reason"] = "missing_prediction"
         elif len(candidates) != 1:
             result["failure_reason"] = "multiple_predictions"
+        elif "status" in candidates[0] and candidates[0]["status"] != "completed":
+            result["failure_reason"] = "prediction_failed"
         else:
             prediction = candidates[0]
             try:

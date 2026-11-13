@@ -14,7 +14,7 @@ SPEC.loader.exec_module(runner)
 
 
 def fixture(root):
-    image = root / "data/pubtables-v2/extracted/Full Documents/train/images/PMC1_0.png"
+    image = root / "data/pubtables-v2/extracted/Full Documents/train/images/PMC1_page_0.jpg"
     image.parent.mkdir(parents=True)
     Image.new("RGB", (20, 30), "white").save(image)
     row = dict(
@@ -26,7 +26,7 @@ def fixture(root):
         dataset_revision=runner.DATASET_REVISION,
         fragments=[
             dict(
-                fragment_id="p0",
+                fragment_id="PMC1-table-0-part-0",
                 part_index=0,
                 page_num=0,
                 page_object_num=0,
@@ -130,3 +130,49 @@ def test_partial_iterator_retains_response(tmp_path):
         runner.infer(Pipeline(), output, records)
     assert (output / "fragments/000000/response-000.json").exists()
     assert json.loads((output / "summary.json").read_text())["completed"] == 0
+
+
+@pytest.mark.parametrize(
+    "field,value", [("page_num", 1), ("fragment_id", "wrong"), ("part_index", 1)]
+)
+def test_reject_source_identity(tmp_path, field, value):
+    inputs, row = fixture(tmp_path)
+    row["fragments"][0][field] = value
+    inputs.write_text(json.dumps(row), encoding="utf-8")
+    with pytest.raises(ValueError):
+        runner.prepare(tmp_path, inputs, "run", [row["group_id"]])
+
+
+def test_reject_wrong_document(tmp_path):
+    inputs, row = fixture(tmp_path)
+    row["document_id"] = "PMC2"
+    inputs.write_text(json.dumps(row), encoding="utf-8")
+    with pytest.raises(ValueError):
+        runner.prepare(tmp_path, inputs, "run", [row["group_id"]])
+
+
+def test_keyboard_interrupt_records_terminal_state(tmp_path):
+    inputs, row = fixture(tmp_path)
+    output, records = runner.prepare(tmp_path, inputs, "run", [row["group_id"]])
+
+    class Pipeline:
+        def predict_iter(self, *args, **kwargs):
+            raise KeyboardInterrupt()
+
+    with pytest.raises(KeyboardInterrupt):
+        runner.infer(Pipeline(), output, records)
+    assert json.loads((output / "summary.json").read_text())["status"] == "interrupted"
+    assert json.loads((output / "failure.json").read_text())["status"] == "interrupted"
+
+
+def test_prepare_interrupt_preserves_failure(tmp_path, monkeypatch):
+    inputs, row = fixture(tmp_path)
+
+    def interrupt(*args):
+        raise KeyboardInterrupt()
+
+    monkeypatch.setattr(runner, "sha", interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        runner.prepare(tmp_path, inputs, "run", [row["group_id"]])
+    output = tmp_path / "artifacts/reconstruction-upstream/run"
+    assert json.loads((output / "failure.json").read_text())["status"] == "interrupted"

@@ -77,3 +77,10 @@ def test_invalid_prediction_source_fails_and_empty_denominator():
     assert result["diagnostic_rates"]["joint_exact"] == 0
     assert result["per_group"][0]["failure_reason"] == "invalid_source_pages"
     assert score_groups([], [])["diagnostic_rates"]["con_exact"] is None
+
+
+@pytest.mark.parametrize("status", ["failed", "running", None])
+def test_explicit_noncompleted_status_fails(status):
+    result = score_groups([row()], [dict(row(), status=status)])
+    assert result["per_group"][0]["failure_reason"] == "prediction_failed"
+    assert all(value == 0 for value in result["diagnostic_rates"].values())
