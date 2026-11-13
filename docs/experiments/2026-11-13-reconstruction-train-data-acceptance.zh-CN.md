@@ -129,3 +129,6 @@ cd /data01/public/zhengguojie/paper
 
 本轮没有活动 GPU 任务或新后台监控。本轮完成的是数据准备子阶段，G0 的完整泄漏/方向/评分审计和 G1 的研究空间验证仍未完成。
 
+## 提交与同步留痕
+
+11 月 13 日主体文档提交 `fb0e40efde0998d5dc613cac939ec15b66c80e17` 已核验本地、GitHub 和服务器 `codex/reconstruction-data-audit` 分支一致，作者为 `zgjdev <zhengguojie0922@gmail.com>`，两端工作区干净。服务器只做受保护路径变更为空的 fast-forward；main 未变。该验收记录中的源代码仍为实际运行版本 `63bf468`。本段及计划勾选是同步后追加的留痕补记，随后同分支提交同步。文件链接、代码块和最终 diff 空白检查通过；本轮未改产品代码，沿用已有服务器测试证据。

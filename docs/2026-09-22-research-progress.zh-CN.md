@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-11-13 同步留痕：数据验收主体提交 `fb0e40e` 已核验本地、GitHub、服务器同一功能分支 `codex/reconstruction-data-audit` 一致；main 未变，数据未纳入 Git。同步后记录补记随后提交，实验事实见 [11月13日验收记录](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)。
+
 2026-11-13 完成联合重建 train 数据子阶段验收。原run于11月9日23:53北京时间结束；7,359文档、7,606跨页表，回源核对全部parts和抽样、893产物SHA通过，missing/extra/duplicate均0。200表审计材料和20表66片段预览初查完成；2例侧向表需固定方向策略，尚未逐字/GT网格审计或双人复核。划分为provisional_do_not_train，重复候选0接受不能作为无泄漏证据；无新预测/训练/分数。独立验收与逐例观察另存新目录，未改原数据/原run。下一步泄漏校准、方向/紧边界、grid评分契约与小样本强规则诊断，G0/G1未通过。[数量、SHA、命令与后续关口](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)
 
 2026-11-09 23:39 北京时间，服务器20文档G0 smoke完成并核验输入/产物哈希；48测试含Linux符号链接检查全部通过。坐标预览展示边缘问题已回归修复为`63bf468`，新模块30测试通过。CPU全train清单run `20261109T153945Z-reconstruction-train-full` 已开始，计划生成200表审计样本与20表坐标材料；当前等待完成，不使用GPU、不生成预测、不放行训练。[命令与证据](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
