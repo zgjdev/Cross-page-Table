@@ -118,7 +118,8 @@ def run(project_root, upstream_run, targets, run_id):
         for path in extras:
             read(inside(upstream, path))
         target_rows = {}
-        for line in read(targets).decode("utf-8-sig").splitlines():
+        # JSONL records are delimited by LF, not Unicode text separators.
+        for line in read(targets).decode("utf-8-sig").split("\n"):
             if not line.strip():
                 continue
             row = json.loads(line)
