@@ -1,5 +1,7 @@
 # 项目研究进度
 
+2026-11-13 10:47 北京时间：评分契约首轮合成核验完成，服务器21项旧测试通过；错来源或额外预测仍可得到跨页子集grid exact=1，nbsp/省略闭标签被当前解析器拒绝。旧行为已留证，未改历史评分；下一项为版本化网格与严格任务评分契约实现，G0仍未通过。无模型/GPU任务。[探针、结果与复现说明](experiments/2026-11-13-reconstruction-score-contract-preflight.zh-CN.md)。
+
 2026-11-13 同步留痕：数据验收主体提交 `fb0e40e` 已核验本地、GitHub、服务器同一功能分支 `codex/reconstruction-data-audit` 一致；main 未变，数据未纳入 Git。同步后记录补记随后提交，实验事实见 [11月13日验收记录](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)。
 
 2026-11-13 完成联合重建 train 数据子阶段验收。原run于11月9日23:53北京时间结束；7,359文档、7,606跨页表，回源核对全部parts和抽样、893产物SHA通过，missing/extra/duplicate均0。200表审计材料和20表66片段预览初查完成；2例侧向表需固定方向策略，尚未逐字/GT网格审计或双人复核。划分为provisional_do_not_train，重复候选0接受不能作为无泄漏证据；无新预测/训练/分数。独立验收与逐例观察另存新目录，未改原数据/原run。下一步泄漏校准、方向/紧边界、grid评分契约与小样本强规则诊断，G0/G1未通过。[数量、SHA、命令与后续关口](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)
