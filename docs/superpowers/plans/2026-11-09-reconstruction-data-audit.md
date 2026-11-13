@@ -27,8 +27,8 @@
 
 逐表校验 parts 页存在，bbox 有限/面积正，读取图像宽高，floor 左上/ceil 右下并裁到边界，记录原坐标和 clamping；空裁剪必须失败。逐文件 SHA，跨页图像 SHA 缓存。文件名/重复页/路径越界、非法 JSON/part 明确失败。limit_documents 只用于技术 smoke，audit 中明确不是全量。
 
-- [ ] 测试同页/跨页/非相邻页、页码数字序、输入目标隔离、坐标裁剪/越界、缺图、SHA、确定性和源文件不变。
-- [ ] 实现并通过 `.venv/Scripts/python.exe -m pytest tests/reconstruction/test_data.py`。
+- [x] 测试同页/跨页/非相邻页、页码数字序、输入目标隔离、坐标裁剪/越界、缺图、SHA、确定性和源文件不变。
+- [x] 实现并通过 `.venv/Scripts/python.exe -m pytest tests/reconstruction/test_data.py`。
 
 ### T2 重复候选、簇划分和抽样
 
@@ -38,8 +38,8 @@
 
 提供 `sample_audit_groups(profiles: list[dict], assignments: list[dict], *, sample_size: int = 200, coordinate_size: int = 20, seed: int = 20261109) -> dict`，返回 samples、coordinate_group_ids、strata、summary。profiles 含 document_id、group_id、page_count、cell_count、has_span。按 page_count=2/3/4+ 与 has_span 分层，分配给非空层的均衡配额并补余，层内稳定 seed 排序抽样，概率 n/N、weight=N/n。不足时全部取且明确 shortfall。20 表从样本内分层确定性选取，诊断不作为第二个代表性统计样本。
 
-- [ ] 测试完全重复/空文本、近重复候选验证、同簇不跨 split、字典序无关、抽样无重复、概率/权重和小总体。
-- [ ] 实现并通过对应测试，报告近重复检出的限制。
+- [x] 测试完全重复/空文本、近重复候选验证、同簇不跨 split、字典序无关、抽样无重复、概率/权重和小总体。
+- [x] 实现并通过对应测试，报告近重复检出的限制。
 
 ### T3 CLI、审计预览和配置
 
@@ -47,18 +47,20 @@
 
 CLI 参数 `--project-root --output-dir --limit-documents --sample-size --coordinate-size`，输出目录须位于根下 artifacts/reconstruction，独占 mkdir。保存 inputs.jsonl、targets.jsonl、documents/splits/duplicate-candidates、audit-sample、coordinate-sample、summary、run-manifest、hashes；文档文本不写进 inputs。先完整校验再发布 completed。图像仅在服务器生成，源图不变；200 表审计页显示各片段 crop 和 GT（标为 GT），预测明确未生成；20 表额外提供原页 bbox overlay 和编号，便于人工坐标核验。HTML 目标通过安全渲染或 sandbox iframe 展示，不能执行原始标签脚本。
 
-- [ ] 测试拒绝覆盖/路径逃逸、输入目标隔离、采样和截图引用存在、源数据 SHA 不变。
-- [ ] 跑相关测试与 ruff，独立审查再发布。
+- [x] 测试拒绝覆盖/路径逃逸、输入目标隔离、采样和截图引用存在、源数据 SHA 不变。
+- [x] 跑相关测试与 ruff，独立审查再发布。
 
 ### T4 服务器验收与留痕
 
-- [ ] 提交前检查保护目录 diff 为空；源码通过新非当前 ref 传入服务器，只做安全 fast-forward 或独立新源码目录。
-- [ ] 小范围 20 文档 smoke，核对 manifest/targets ID、文件哈希和预测未生成状态。
-- [ ] 完整 train CPU 清单、暂定划分与 200/20 样本，保存实际命令、时间、环境与结果。
-- [ ] 检查 20 表坐标预览；如图像/标注存在问题，保留 issue 清单，不能跳过失败表。
-- [ ] 更新实验记录、记忆、进度；提交并同步 GitHub 与服务器同一功能分支。未完成的人审/泄漏校准/基线明确列出，不冒称 G0/G1 完成。
+- [x] 提交前检查保护目录 diff 为空；源码通过新非当前 ref 传入服务器，只做安全 fast-forward 或独立新源码目录。
+- [x] 小范围 20 文档 smoke，核对 manifest/targets ID、文件哈希和预测未生成状态。
+- [x] 完整 train CPU 清单、暂定划分与 200/20 样本，保存实际命令、时间、环境与结果。
+- [x] 检查 20 表坐标预览；如图像/标注存在问题，保留 issue 清单，不能跳过失败表。
+- [x] 更新实验记录、记忆、进度。未完成的人审/泄漏校准/基线明确列出，不冒称 G0/G1 完成。
+- [ ] 提交并同步 GitHub 与服务器同一功能分支，核对 HEAD 与工作区状态。
 
 ## 工作进度
 
 - 已完成启动前检查，原始 train 数据存在。新分支 `codex/reconstruction-data-audit`，起点 `6ee8fcb`。保留上一轮未提交的就绪性文档。
-- 当前阶段为 T1–T3 实现。当前无服务器生成任务、无 GPU 使用。
+- 2026-11-13：T1–T4 的数据准备与验收已完成，最终同步正在收尾。完整 train 7,359 文档/7,606 跨页表、200 审计材料/20 坐标图已核验；20 表初查含 2 例侧向表，未声称像素/人审通过。当前无 GPU 任务。
+- [最终验收记录](../../experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md) 保存源对账、893 产物 SHA、逐例观察与待处理项；独立双人审计、泄漏校准、grid/评分契约和基线均仍未完成，G0/G1 不放行。

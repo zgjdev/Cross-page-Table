@@ -1,6 +1,6 @@
 # 跨页表格恢复研究长期记忆
 
-最近文档更新：2026-11-09（北京时间），形成跨页联合结构重建研究方案及实验决策规范；本轮只检查 Git 与编写/同步文档，无新实验。最近正式结果核验仍为 2026-11-08 12:32，OCRFlux推理及两组正式评分完成，1,916输入与6结果SHA复核一致。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
+最近文档更新：2026-11-13（北京时间），联合重建 train 数据清单独立验收与 20 表坐标初查完成；G0/G1 尚未通过，无新模型预测、训练或分数。最近正式模型结果核验仍为 2026-11-08 12:32，OCRFlux推理及两组正式评分完成，1,916输入与6结果SHA复核一致。本文件是仓库内的**可更新恢复入口**，不是隐藏的会话记忆，不代替 `AGENTS.md`、实验日志或原始产物。更新时保留重要历史证据的链接；若与产物冲突，先核对产物，再在实验记录中追加勘误。
 
 ## 每次接手先做什么
 
@@ -10,7 +10,11 @@
 
 ## 当前研究状态
 
-- **2026-11-09 G0 工具本地实现。**新分支 `codex/reconstruction-data-audit` 已实现 train 清单/输入标签隔离、暂定文档簇划分、200/20 分层抽样及服务器侧静态预览。47 项相关测试通过，1 项 Windows 符号链接权限跳过，Ruff 通过；独立审查及服务器 smoke 尚待完成。划分为 `provisional_do_not_train`，无预测、无 GPU。下一步小范围 smoke 后生成完整 train 审计材料，不能宣称 G0/G1 已通过。[实验与实施证据](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
+- **2026-11-13 数据准备完成验收。**11月9日 full train run 已于北京时间23:53完成，7,359文档/110,347页清单/19,885逻辑表/7,606跨页表；11月13日独立回源核对全部parts与抽样，missing/extra/duplicate 0，893产物SHA一致。暂定fit/dev/confirm为5,123/1,124/1,112文档，跨页表5,322/1,152/1,132；近重复候选1,684、接受0不能证明无泄漏。200表审计材料与20表66片段坐标初查完成，2个侧向表待方向策略验证，所有独立人审仍pending。原run `artifacts/reconstruction/20261109T153945Z-reconstruction-train-full/`；验收 `artifacts/reconstruction-acceptance/20261113T022600Z-train-full-v3/`，exit0，原数据与旧结果不变。**不重跑生成、不放行训练**；下一步重复/污染校准、方向与紧边界检查、grid/评分契约、固定上游小样本与强规则诊断。无GPU/后台任务。[完成证据与逐例记录](experiments/2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)
+
+- **2026-11-09 23:39 北京时间全 train 清单启动（历史检查点，已由11月13日验收关闭）。**G0 工具经独立审查，服务器48项测试通过；20文档smoke完成19跨页表/10审计页/4坐标图，62源SHA与51产物SHA一致。发现拼图底部裁切展示问题并回归修复，代码`63bf468`，服务器新模块30测试通过。当时正式CPU run `20261109T153945Z-reconstruction-train-full` 正在scan，当前已完成；输出根 `artifacts/reconstruction/同ID/`。未训练或生成预测。[执行记录](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
+
+- **2026-11-09 G0 工具本地实现（历史检查点，后续服务器验收已完成）。**新分支 `codex/reconstruction-data-audit` 已实现 train 清单/输入标签隔离、暂定文档簇划分、200/20 分层抽样及服务器侧静态预览。47 项相关测试通过，1 项 Windows 符号链接权限跳过，Ruff 通过；当时独立审查及服务器 smoke 待完成，后续证据见上方完成条目。划分仍为 `provisional_do_not_train`，无预测、无 GPU，不能宣称 G0/G1 已通过。[实验与实施证据](experiments/2026-11-09-reconstruction-train-data-audit.zh-CN.md)
 
 - **2026-11-09 16:03 北京时间启动就绪性只读核验。**服务器 HEAD 为 `6ee8fcb` 且工作区干净，train/images 110,347 文件、tables 与页对标注各 7,359 文件，三份 train 标注可解析并重算 SHA。可开始 G0 的 train 数据/评价准备。重建专用清单、模块和配置尚不存在；现有 val 清单脚本不可直接改路径用于 train。G0/G1 尚未通过，未启动训练、下载或 GPU 任务，也未核验实时 GPU 资源。下一步实现 train 内划分/片段清单与输入标签隔离，做 20 例坐标核验，再准备 200 表审计及简单基线。[就绪性记录](experiments/2026-11-09-joint-reconstruction-startup-readiness.zh-CN.md)
 

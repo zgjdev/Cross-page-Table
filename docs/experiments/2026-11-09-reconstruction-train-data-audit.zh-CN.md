@@ -1,6 +1,6 @@
 # 联合重建 train 数据入口与首批审计材料
 
-日期 2026-11-09，Asia/Shanghai；运行事件使用 UTC。状态为 **本地实现与相关测试完成，服务器 smoke 待执行**。用户已要求开始首阶段，实施范围见 [G0 实施计划](../superpowers/plans/2026-11-09-reconstruction-data-audit.md)。
+日期 2026-11-09，Asia/Shanghai；运行事件使用 UTC。**11 月 13 日恢复核验：完整 train 清单已于 11 月 9 日完成，独立验收与 20 表坐标初查完成**，详见 [完成验收与未解项](2026-11-13-reconstruction-train-data-acceptance.zh-CN.md)。下文保留各阶段检查点，不以历史“待执行/运行中”状态替代最新证据。用户已要求开始首阶段，实施范围见 [G0 实施计划](../superpowers/plans/2026-11-09-reconstruction-data-audit.md)。
 
 ## 目的、范围与约束
 
@@ -33,3 +33,37 @@ Python 3.12.7，项目 `.venv`，新增可选依赖 `reconstruction = ["Pillow>=
 先在新目录执行 `--limit-documents 20 --sample-size 10 --coordinate-size 4` 的技术 smoke，核对源哈希、模型输入不含目标、失败状态及预览。通过后不设 limit，对全部 train 生成清单和最多 200/20 的审计材料。实际 RUN_ID、完整命令、代码 commit、时间、数量及核验结果在执行后追加，不提前声明运行或成功。
 
 下一步在独立代码审查后部署功能分支，只读原始数据并新建输出。后续应审阅坐标材料、校准重复候选，再进行局部预测与真实错误分析。独立双人审计无法由 Agent 自己复看替代。
+
+## 服务器 smoke 与预览修复
+
+部署 commit `ae59df616628d602307b8a613da0f3c33c71de82`，服务器切换到 `codex/reconstruction-data-audit`。首次 Linux pytest 的新 basetemp 父目录不存在，fixture 初始化失败；创建项目内父目录后换新时间戳子目录，**48 项全部通过**，包括符号链接逃逸测试，没有修改断言。没有删除或复用已有临时目录。
+
+实际 smoke 输出为 `artifacts/reconstruction/20261109T153721Z-reconstruction-train-smoke/`，事件时间 15:37:21–15:37:26 UTC（北京时间 23:37）。实际命令如下。
+
+```bash
+cd /data01/public/zhengguojie/paper
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:third_party/grits-main \
+  .venvs/eval312/bin/python -u scripts/build_reconstruction_manifest.py \
+  --project-root /data01/public/zhengguojie/paper \
+  --output-dir artifacts/reconstruction/20261109T153721Z-reconstruction-train-smoke \
+  --limit-documents 20 --sample-size 10 --coordinate-size 4
+```
+
+smoke 读取 20 文档/315 页清单、54 张逻辑表，得到 19 张跨页表；同页多片段 1，坐标 clamping 0。暂定 fit/dev/confirm 为 13/4/3 文档。生成 10 表审计页与 4 表坐标拼图，62 份源文件结束时 SHA 一致；独立重算 51 项产物 SHA 全部匹配。inputs/targets ID 一致且输入无 HTML/cells，缺失/额外/重复为 0。`result-hashes.json` SHA 为 `1c513be086f4077458fac7323e6c61e7ac2b792c3968b60189dbbe4d56c0d217`。
+
+直接流式查看两张服务器坐标拼图，未把数据集写入本地。发现预览 tile 高 620 而 crop 缩略图底边可到 629，拼图底部少量像素被裁；独立保存的全分辨率 crop 不受影响。新增回归先复现失败，修正 tile 高度为 650；commit `63bf468`。本地新模块 29 passed/1 Windows symlink skipped，服务器新模块 **30 passed**，Ruff 通过。旧 smoke 所有产物保留，正式材料使用修正后的代码新建目录。
+
+## 全部 train 清单已启动
+
+RUN_ID `20261109T153945Z-reconstruction-train-full`，15:39:46 UTC（北京时间 23:39:46）记录 `scan_started`。代码为 `63bf468`，Python PID `288957`；CPU 前台命令由当前 SSH 执行会话持续等待，非 GPU 训练、未设置后台监控。
+
+```bash
+cd /data01/public/zhengguojie/paper
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src:third_party/grits-main \
+  .venvs/eval312/bin/python -u scripts/build_reconstruction_manifest.py \
+  --project-root /data01/public/zhengguojie/paper \
+  --output-dir artifacts/reconstruction/20261109T153945Z-reconstruction-train-full \
+  --sample-size 200 --coordinate-size 20
+```
+
+实际参数/源码 SHA/解释器/依赖记于 run-manifest.json，阶段日志 events.jsonl；产物根即上述 output-dir。预期结束条件为完整 7,359 文档进入审计、模型输入与目标 ID 对齐、样本及预览覆盖、全部引用源 SHA 重验、result-hashes 与 summary 完整。最终数量及人工坐标检查待完成，不因任务已启动而宣称完成。
