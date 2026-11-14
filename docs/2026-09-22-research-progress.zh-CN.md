@@ -473,3 +473,5 @@
 ## 2026-11-06 2B–4B候选模型补查
 
 只读核验官方模型页/论文，新增 [候选报告](reports/2026-11-06-small-vlm-cross-page-candidates.zh-CN.md)：Qwen3-VL-2B/4B、DeepSeek-OCR-2约3B、MonkeyOCR-pro-3B、InternVL3_5-4B。区分页解析、多图输入和明确跨页合并；MonkeyOCR v1.5模块与公开权重/代码对应仍待核验。无新实验/服务器访问，不改OCRFlux→Popo既有安排，也不更新任务实时状态；下一步如选型，先固定revision及train完整文档正负例smoke。
+
+2026-11-14 自动化续进：新增显式表头保守对照，135本地测试通过/2跳过；真实66片均无header角色，20表CPU配对与B0逐表完全一致（结构1/20、内容0/20）。不是完整B1，无新GPU任务；下一步预测内容驱动的表头/列对应及误删诊断，G0/G1与全量训练仍未放行。[本轮记录](experiments/2026-11-14-reconstruction-baseline-readiness.zh-CN.md)。
