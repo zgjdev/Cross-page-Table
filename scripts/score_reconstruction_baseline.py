@@ -20,7 +20,15 @@ from cptla.reconstruction.header_baseline import BASELINE_ID, deduplicate_header
 from cptla.reconstruction.scoring import score_groups
 
 
-def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_concat_v1"):
+def run(
+    project_root,
+    upstream_run,
+    targets,
+    run_id,
+    baseline="B0_vertical_concat_v1",
+    *,
+    additional_upstream_runs=None,
+):
     methods = {
         "B0_vertical_concat_v1": concatenate_group,
         BASELINE_ID: deduplicate_headers_group,
@@ -61,6 +69,11 @@ def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_conca
 
     try:
         upstream = inside(root, Path(upstream_run))
+        upstreams = [upstream] + [
+            inside(root, Path(path)) for path in (additional_upstream_runs or [])
+        ]
+        if len(set(upstreams)) != len(upstreams):
+            raise ValueError("duplicate upstream run")
         targets = inside(root, Path(targets))
         write(
             "run-manifest.json",
@@ -69,7 +82,12 @@ def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_conca
                 baseline=baseline,
                 started_utc=datetime.now(UTC).isoformat(),
                 argv=sys.argv,
-                parameters=dict(upstream_run=str(upstream), targets=str(targets), run=run_id),
+                parameters=dict(
+                    upstream_run=str(upstream),
+                    upstream_runs=[str(path) for path in upstreams],
+                    targets=str(targets),
+                    run=run_id,
+                ),
                 python=platform.python_version(),
                 platform=platform.platform(),
                 device="cpu",
@@ -88,46 +106,54 @@ def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_conca
                 ),
             ),
         )
-        prepared = json.loads(read(inside(upstream, Path("prepared.json"))))
-        summary = json.loads(read(inside(upstream, Path("summary.json"))))
-        if prepared.get("status") != "prepared" or summary.get("status") != "completed":
-            raise ValueError("upstream is not completed/prepared")
-        records = prepared.get("fragments")
-        if not isinstance(records, list) or not records:
-            raise ValueError("empty or invalid prepared fragments")
-        if summary.get("expected") != len(records) or summary.get("completed") != len(records):
-            raise ValueError("upstream coverage mismatch")
         expected, predictions = defaultdict(list), defaultdict(list)
-        expected_paths, identities = set(), set()
-        for record in records:
-            group = record["group_id"]
-            fid = record["fragment_id"]
-            if not isinstance(group, str) or not group or (group, fid) in identities:
-                raise ValueError("invalid or duplicate prepared group/fragment")
-            identities.add((group, fid))
-            crop = inside(upstream, Path(record["crop_relpath"]))
-            if crop.name != "crop.png" or not crop.is_relative_to(upstream / "fragments"):
-                raise ValueError("invalid crop location")
-            prediction_path = crop.parent / "prediction.json"
-            if prediction_path in expected_paths:
-                raise ValueError("duplicate crop directory")
-            expected_paths.add(prediction_path)
-            source = json.loads(read(inside(upstream, crop.parent / "source.json")))
-            if source != record:
-                raise ValueError("prepared/source mismatch")
-            read(root / record["image_relpath"], record["image_sha256"])
-            read(crop, record["crop_sha256"])
-            expected[group].append(record)
-            if prediction_path.exists():
-                prediction = json.loads(read(inside(upstream, prediction_path)))
-                if not isinstance(prediction, dict) or prediction.get("group_id") != group:
-                    raise ValueError("prediction group mismatch")
-                predictions[group].append(prediction)
-        fragments_root = inside(upstream, Path("fragments"))
-        actual_paths = set(fragments_root.rglob("prediction.json"))
+        expected_paths, identities, actual_paths, seen_groups = set(), set(), set(), set()
+        inventories = {}
+        for upstream in upstreams:
+            prepared = json.loads(read(inside(upstream, Path("prepared.json"))))
+            summary = json.loads(read(inside(upstream, Path("summary.json"))))
+            if prepared.get("status") != "prepared" or summary.get("status") != "completed":
+                raise ValueError("upstream is not completed/prepared")
+            records = prepared.get("fragments")
+            if not isinstance(records, list) or not records:
+                raise ValueError("empty or invalid prepared fragments")
+            if summary.get("expected") != len(records) or summary.get("completed") != len(records):
+                raise ValueError("upstream coverage mismatch")
+            run_groups = {record["group_id"] for record in records}
+            if run_groups & seen_groups:
+                raise ValueError("duplicate group across upstream runs")
+            seen_groups.update(run_groups)
+            for record in records:
+                group = record["group_id"]
+                fid = record["fragment_id"]
+                if not isinstance(group, str) or not group or (group, fid) in identities:
+                    raise ValueError("invalid or duplicate prepared group/fragment")
+                identities.add((group, fid))
+                crop = inside(upstream, Path(record["crop_relpath"]))
+                if crop.name != "crop.png" or not crop.is_relative_to(upstream / "fragments"):
+                    raise ValueError("invalid crop location")
+                prediction_path = crop.parent / "prediction.json"
+                if prediction_path in expected_paths:
+                    raise ValueError("duplicate crop directory")
+                expected_paths.add(prediction_path)
+                source = json.loads(read(inside(upstream, crop.parent / "source.json")))
+                if source != record:
+                    raise ValueError("prepared/source mismatch")
+                read(root / record["image_relpath"], record["image_sha256"])
+                read(crop, record["crop_sha256"])
+                expected[group].append(record)
+                if prediction_path.exists():
+                    prediction = json.loads(read(inside(upstream, prediction_path)))
+                    if not isinstance(prediction, dict) or prediction.get("group_id") != group:
+                        raise ValueError("prediction group mismatch")
+                    predictions[group].append(prediction)
+            fragments_root = inside(upstream, Path("fragments"))
+            current_paths = set(fragments_root.rglob("prediction.json"))
+            inventories[fragments_root] = current_paths
+            actual_paths.update(current_paths)
+            for path in sorted(current_paths - expected_paths):
+                read(inside(upstream, path))
         extras = sorted(actual_paths - expected_paths)
-        for path in extras:
-            read(inside(upstream, path))
         target_rows = {}
         # JSONL records are delimited by LF, not Unicode text separators.
         for line in read(targets).decode("utf-8-sig").split("\n"):
@@ -150,8 +176,9 @@ def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_conca
         write("input-hashes.json", hashes)
         for path, digest in hashes.items():
             read(root / path, digest)
-        if set(fragments_root.rglob("prediction.json")) != actual_paths:
-            raise ValueError("prediction inventory changed during scoring")
+        for fragments_root, inventory in inventories.items():
+            if set(fragments_root.rglob("prediction.json")) != inventory:
+                raise ValueError("prediction inventory changed during scoring")
         artifact_hashes = {
             path.name: hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(output.iterdir())
@@ -190,6 +217,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, required=True)
     parser.add_argument("--upstream-run", type=Path, required=True)
+    parser.add_argument("--additional-upstream-run", type=Path, action="append", default=[])
     parser.add_argument("--targets", type=Path, required=True)
     parser.add_argument("--run", required=True)
     parser.add_argument(
@@ -198,7 +226,16 @@ def main():
         default="B0_vertical_concat_v1",
     )
     args = parser.parse_args()
-    print(run(args.project_root, args.upstream_run, args.targets, args.run, args.baseline))
+    print(
+        run(
+            args.project_root,
+            args.upstream_run,
+            args.targets,
+            args.run,
+            args.baseline,
+            additional_upstream_runs=args.additional_upstream_run,
+        )
+    )
 
 
 if __name__ == "__main__":
