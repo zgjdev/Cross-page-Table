@@ -44,3 +44,12 @@ def test_reject_unlisted_or_escape(tmp_path):
                 add_generation_prompt=True,
                 truncation=False,
             )
+
+
+def test_text_assistant_uses_multimodal_content_list(tmp_path):
+    proc = FakeProcessor()
+    adapter = QwenProcessorAdapter(proc, tmp_path, {})
+    messages = [{"role": "assistant", "content": "<table>原文</table>"}]
+    adapter(messages, add_generation_prompt=False, truncation=False)
+    assert proc.messages[0]["content"] == [{"type": "text", "text": "<table>原文</table>"}]
+    assert messages[0]["content"] == "<table>原文</table>"

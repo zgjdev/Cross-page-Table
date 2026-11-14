@@ -18,6 +18,9 @@ class QwenProcessorAdapter:
         used = {}
         for message in payload:
             content = message.get("content")
+            if isinstance(content, str):
+                content = [{"type": "text", "text": content}]
+                message["content"] = content
             if not isinstance(content, list):
                 continue
             for item in content:
