@@ -55,3 +55,21 @@ PaddleOCR3.4.0/PaddleX3.4.1/PaddleGPU3.2.1/numpy1.26.4，现有VLM权重revision
 侧向2表9片段run为20261113T140000Z-r0-orientation-pilot，14:05:53 UTC完成9/9。launcher为artifacts/reconstruction-launchers/20261113T140318Z/，exit0。B0诊断artifacts/reconstruction-baselines/20261113T141755Z/：一组片段列数一致，另一组列数4/5/4/3/4，按约定column_mismatch保留失败；两表top/con/joint均0。未旋转原图，不能据此宣称方向质量通过。
 
 20表66片段R0试运行于14:27 UTC启动，run为20261113T142500Z-r0-20table-pilot，GPU0、seed0、代码465add6、相同权重/环境/方向策略。20个group来自原coordinate-sample.jsonl，全部暂定train_fit。完整argv在artifacts/reconstruction-launchers/20261113T142727Z/command.json，PID2998949，stdout.log与pid.json同目录；预测根artifacts/reconstruction-upstream/20261113T142500Z-r0-20table-pilot/。检查时46/66已保存，尚无summary，不记为完成；当前SSH执行会话仍等待，不声称已配置独立后台服务。完成条件为66个片段终态、完成summary和覆盖/哈希核验，再运行B0评分。无新下载、无训练、原数据和旧结果未修改。
+
+### 14:49 UTC 评分入口真实复算
+
+初次CLI复算因目标文字包含U+2028、splitlines误切JSONL失败，现场artifacts/reconstruction-baselines/20261113-upright-b0-cli保留。确认全部7606个按LF读取的目标记录均可解析，新增Unicode分隔符回归先失败再修复，改为仅按LF切分，不改原文/真值。修正90c0c61及格式e140af3；本地130 passed/2 skipped，服务器132 passed，Ruff通过。自动审批拦截本地测试临时目录清理，临时文件保留，不影响实验；没有执行服务器清理。
+
+14:49 UTC新CLI复算完成：artifacts/reconstruction-baselines/20261113-upright-b0-cli-v2与20261113-sideways-b0-cli-v2，各2组，前者failed_groups=0、后者=1；missing/extra预测路径均0，top/con/joint exact均0，与先前诊断一致。源图/crop校验、预测快照与末尾复验通过，summary保存产物SHA。20表run最新60/66片段，仍等待完成。
+
+## 2026-11-14 11:11 北京时间：20表推理与B0评分完成
+
+核验原推理于11月13日14:51:15 UTC完成66/66，launcher exit0，约24分钟；本轮未重跑GPU。CPU评分代码e140af3，命令：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venvs/eval312/bin/python scripts/score_reconstruction_baseline.py --project-root /data01/public/zhengguojie/paper --upstream-run artifacts/reconstruction-upstream/20261113T142500Z-r0-20table-pilot --targets artifacts/reconstruction/20261109T153945Z-reconstruction-train-full/targets.jsonl --run 20261114-20table-b0-cli
+```
+
+输出artifacts/reconstruction-baselines/20261114-20table-b0-cli，03:11:22 UTC completed，20目标/20预测，片段missing/extra路径0；输入SHA开始校验及结束复验通过，产物SHA在summary。18组拼接完成，2组column_mismatch：PMC11204794-table-0、PMC11845437-table-1，全部保留分母。项目诊断top_exact=0.05（1/20）、con_exact=0、joint_exact=0、source_exact=0.9；后者失败组按失败计入，不是发现两个错误来源页。这些不是官方Acc-Con，也不是代表性全量成绩。
+
+本轮无新下载、无训练，20表GPU任务已结束。已完成本阶段grid/评分/精确污染/R0/B0闭环；尚未完成强规则、200表可修复空间、近重复校准、独立人审和训练实现。下一步固定相同原始预测，实现列对齐/重复表头等强基线，分开统计上游文字缺失与结构错误；不能由B0低分直接推定联合模型一定有效。用户暂时无独立审计者，人审保持pending，全量训练不放行。
