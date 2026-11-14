@@ -475,3 +475,7 @@
 只读核验官方模型页/论文，新增 [候选报告](reports/2026-11-06-small-vlm-cross-page-candidates.zh-CN.md)：Qwen3-VL-2B/4B、DeepSeek-OCR-2约3B、MonkeyOCR-pro-3B、InternVL3_5-4B。区分页解析、多图输入和明确跨页合并；MonkeyOCR v1.5模块与公开权重/代码对应仍待核验。无新实验/服务器访问，不改OCRFlux→Popo既有安排，也不更新任务实时状态；下一步如选型，先固定revision及train完整文档正负例smoke。
 
 2026-11-14 自动化续进：新增显式表头保守对照，135本地测试通过/2跳过；真实66片均无header角色，20表CPU配对与B0逐表完全一致（结构1/20、内容0/20）。不是完整B1，无新GPU任务；下一步预测内容驱动的表头/列对应及误删诊断，G0/G1与全量训练仍未放行。[本轮记录](experiments/2026-11-14-reconstruction-baseline-readiness.zh-CN.md)。
+
+2026-11-14 15:07北京时间持续推进：20表内容驱动启发式对照结构exact6/20（B0为1/20），内容0；只作探索，删除26行待语义审查，不称G1通过。CPU全17299引用图dHash候选审计运行中，PID848360/run20261114T070748Z-visual-full，无GPU/训练。[命令、产物及限制](experiments/2026-11-14-reconstruction-baseline-readiness.zh-CN.md)。
+
+2026-11-14完成全17299引用图CPU审计，17988未校准候选、SHA复核一致、进程结束。前三个距离0候选均为版式相近而内容不同的误报，禁止自动合并划分；细节见11月14日baseline-readiness实验记录。当前无本轮运行中任务，下一步联合文本候选筛查和200表诊断；全量实验未就绪。
