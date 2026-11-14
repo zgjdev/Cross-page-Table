@@ -1,0 +1,9 @@
+# Qwen3-VL CPU/interface and later approved SFT smoke, isolated environment.
+# Torch wheels use https://download.pytorch.org/whl/cu124 separately.
+torch==2.6.0
+torchvision==0.21.0
+transformers==4.57.1
+accelerate==1.10.1
+peft==0.17.1
+Pillow==11.3.0
+numpy==1.26.4
