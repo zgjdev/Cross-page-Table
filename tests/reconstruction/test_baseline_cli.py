@@ -133,3 +133,16 @@ def test_source_reverification_before_summary(tmp_path, monkeypatch):
     output = tmp_path / "artifacts/reconstruction-baselines/mutated"
     assert (output / "failure.json").exists()
     assert not (output / "summary.json").exists()
+
+
+def test_optional_header_baseline(tmp_path):
+    upstream, targets = fixture(tmp_path)
+    output = runner.run(tmp_path, upstream, targets, "header", baseline="explicit_header_exact_v1")
+    assert (
+        json.loads((output / "run-manifest.json").read_text())["baseline"]
+        == "explicit_header_exact_v1"
+    )
+    assert (
+        json.loads((output / "predictions.json").read_text())[0]["diagnostics"]["baseline"]
+        == "explicit_header_exact_v1"
+    )

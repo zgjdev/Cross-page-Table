@@ -14,10 +14,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from cptla.reconstruction.baselines import concatenate_group
+from cptla.reconstruction.header_baseline import BASELINE_ID, deduplicate_headers_group
 from cptla.reconstruction.scoring import score_groups
 
 
-def run(project_root, upstream_run, targets, run_id):
+def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_concat_v1"):
+    methods = {"B0_vertical_concat_v1": concatenate_group, BASELINE_ID: deduplicate_headers_group}
+    if baseline not in methods:
+        raise ValueError("unknown baseline")
+    combine = methods[baseline]
     root = Path(project_root).resolve()
 
     def inside(base, path):
@@ -55,7 +60,7 @@ def run(project_root, upstream_run, targets, run_id):
             "run-manifest.json",
             dict(
                 status="pilot_diagnostic_not_formal",
-                baseline="B0_vertical_concat_v1",
+                baseline=baseline,
                 started_utc=datetime.now(UTC).isoformat(),
                 argv=sys.argv,
                 parameters=dict(upstream_run=str(upstream), targets=str(targets), run=run_id),
@@ -131,8 +136,7 @@ def run(project_root, upstream_run, targets, run_id):
             raise ValueError("missing target groups")
         # Selection and ordering come exclusively from the prepared input manifest.
         combined = [
-            concatenate_group(group, predictions[group], records)
-            for group, records in expected.items()
+            combine(group, predictions[group], records) for group, records in expected.items()
         ]
         scores = score_groups([target_rows[group] for group in expected], combined)
         write("predictions.json", combined)
@@ -182,8 +186,13 @@ def main():
     parser.add_argument("--upstream-run", type=Path, required=True)
     parser.add_argument("--targets", type=Path, required=True)
     parser.add_argument("--run", required=True)
+    parser.add_argument(
+        "--baseline",
+        choices=["B0_vertical_concat_v1", BASELINE_ID],
+        default="B0_vertical_concat_v1",
+    )
     args = parser.parse_args()
-    print(run(args.project_root, args.upstream_run, args.targets, args.run))
+    print(run(args.project_root, args.upstream_run, args.targets, args.run, args.baseline))
 
 
 if __name__ == "__main__":
