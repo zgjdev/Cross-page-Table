@@ -11,3 +11,9 @@
 2026-11-14，代码b0c9ec4；本地135 passed/2 Windows跳过，Ruff通过。固定20表66片段全部无显式header单元格。命令在原B0 CLI增加 --baseline explicit_header_exact_v1 --run 20261114-20table-explicit-header，其余输入保持一致。服务器artifacts/reconstruction-baselines/20261114-20table-explicit-header summary completed；逐表per_group与B0完全一致：top0.05/con0/source0.9/joint0。源文件和结果哈希在该目录。没有重跑GPU，无新下载。此为负对照，不能称完整B1，不能据此宣称重复表头问题不存在。
 
 下一步必须实现不依赖显式th的表头/列对应探索对照并检查误删误对齐，再推进200表审计。完整方案仍有G0污染处置/方向核验、近重复、G1人工结构修复、G2/G3技术与机制验证缺口，当前不能全量训练。暂未启动新的长任务。
+
+## 2026-11-14 持续推进检查点（未结束）
+
+用户再次要求连续工作到可全量实验，不再逐小阶段停止。本轮已启动预测内容驱动列对齐/重复首部对照实现及就绪关口独立审查。当前无GPU任务。
+
+完成20表GT-assisted词元覆盖诊断，artifacts/reconstruction-diagnostics/20261114T070006Z-token-coverage/，summary completed，输入末尾SHA复验。按cell原文空白分词、大小写敏感、词频交集计算覆盖；19/20表有未匹配词元，覆盖0.742–1.0。该值不是正式准确率或可恢复上界，分词/格式差异亦可能造成不匹配，不能直接归因为漏识别。原预测和真值均未修改，逐表统计及input-hashes已保存。下一步仍是同输入结构对照与误差分层，不以本诊断绕过G0/G1。

@@ -13,13 +13,19 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+from cptla.reconstruction.alignment_baseline import BASELINE_ID as ALIGNMENT_ID
+from cptla.reconstruction.alignment_baseline import align_group
 from cptla.reconstruction.baselines import concatenate_group
 from cptla.reconstruction.header_baseline import BASELINE_ID, deduplicate_headers_group
 from cptla.reconstruction.scoring import score_groups
 
 
 def run(project_root, upstream_run, targets, run_id, baseline="B0_vertical_concat_v1"):
-    methods = {"B0_vertical_concat_v1": concatenate_group, BASELINE_ID: deduplicate_headers_group}
+    methods = {
+        "B0_vertical_concat_v1": concatenate_group,
+        BASELINE_ID: deduplicate_headers_group,
+        ALIGNMENT_ID: align_group,
+    }
     if baseline not in methods:
         raise ValueError("unknown baseline")
     combine = methods[baseline]
@@ -188,7 +194,7 @@ def main():
     parser.add_argument("--run", required=True)
     parser.add_argument(
         "--baseline",
-        choices=["B0_vertical_concat_v1", BASELINE_ID],
+        choices=["B0_vertical_concat_v1", BASELINE_ID, ALIGNMENT_ID],
         default="B0_vertical_concat_v1",
     )
     args = parser.parse_args()
