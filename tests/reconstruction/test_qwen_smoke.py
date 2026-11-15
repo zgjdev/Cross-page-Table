@@ -114,3 +114,5 @@ def test_resume_config_excludes_operational_paths():
     assert m.resume_config(args, {"inputs": "abc"}, {"weight": "def"}) != first
     args.gradient_checkpointing = False
     assert m.resume_config(args, {"inputs": "changed"}, {"weight": "def"}) != first
+    args.supervised_logits_only = True
+    assert m.resume_config(args, {"inputs": "abc"}, {"weight": "def"}) != first

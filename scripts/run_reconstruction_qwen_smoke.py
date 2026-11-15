@@ -20,6 +20,7 @@ from cptla.reconstruction.data import DATASET_REVISION, PROTOCOL, TRAIN_RELATIVE
 from cptla.reconstruction.grid import GRID_VERSION
 from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
 from cptla.reconstruction.sft_data import SFTCollator, build_messages
+from cptla.reconstruction.supervised_logits import supervised_suffix
 
 
 def safe(root, path):
@@ -163,7 +164,7 @@ def gpu_guard(gpu, minimum):
 
 def resume_config(args, input_hashes, model_hashes):
     """恢复契约排除运行位置和本次步数，保留影响数值路径的配置。"""
-    return dict(
+    contract = dict(
         schema="qwen-bounded-smoke-resume-v1",
         groups=list(args.group_id),
         seed=20261109,
@@ -183,6 +184,9 @@ def resume_config(args, input_hashes, model_hashes):
         grad_accumulation=1,
         clip_grad_norm=1.0,
     )
+    if getattr(args, "supervised_logits_only", False):
+        contract["supervised_logits_only"] = True
+    return contract
 
 
 def main():
@@ -200,11 +204,12 @@ def main():
     parser.add_argument("--execute-smoke", action="store_true")
     parser.add_argument("--resume-state")
     parser.add_argument("--gradient-checkpointing", action="store_true")
+    parser.add_argument("--supervised-logits-only", action="store_true")
     args = parser.parse_args()
     validate(args.group_id, args.steps)
     if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z(?:-[A-Za-z0-9_-]+)?", args.run):
         raise ValueError("timestamp run required")
-    if not 1 <= args.max_tokens <= 32768 or args.gpu < 0:
+    if not 1 <= args.max_tokens <= 65536 or args.gpu < 0:
         raise ValueError("invalid token or GPU budget")
     root = args.project_root.resolve()
     output = safe(root, "artifacts/reconstruction-qwen-smoke/" + args.run)
@@ -429,9 +434,13 @@ def main():
             for step in range(args.steps):
                 gpu_guard(args.gpu, 8192)
                 item = encoded[cursor % len(encoded)]
+                if args.supervised_logits_only:
+                    item = supervised_suffix(item)
                 batch = {
                     key: torch.tensor([value], device="cuda")
                     if isinstance(value, list)
+                    else value
+                    if isinstance(value, int)
                     else value.to("cuda")
                     for key, value in item.items()
                     if key != "token_type_ids"
@@ -464,6 +473,9 @@ def main():
                     clip_grad_norm=1.0,
                     seconds=time.monotonic() - started,
                     peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                    input_tokens=len(item["input_ids"]),
+                    supervised_tokens=sum(value != -100 for value in item["labels"]),
+                    logits_positions=item.get("logits_to_keep", len(item["input_ids"])),
                 )
                 cursor += 1
                 losses.append(event)
