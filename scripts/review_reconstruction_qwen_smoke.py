@@ -351,7 +351,12 @@ def main():
                 )
             groups = config["group_id"]
             targets = []
-            for line in read(safe(root, config["targets"])).decode("utf-8-sig").split("\n"):
+            pinned = json.loads(read(smoke / "input-hashes.json"))
+            target_path = safe(root, config["targets"])
+            target_name = target_path.relative_to(root).as_posix()
+            if not re.fullmatch("[a-f0-9]{64}", pinned.get(target_name, "")):
+                raise ValueError("missing training target SHA")
+            for line in read(target_path, pinned[target_name]).decode("utf-8-sig").split("\n"):
                 if line.strip():
                     row = json.loads(line)
                     if row["group_id"] in groups:

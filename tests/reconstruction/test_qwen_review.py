@@ -65,6 +65,60 @@ def test_untrained_probe_preserves_training_config_and_rejects_overlap():
         m.probe_config(config, ["untrained"], [])
 
 
+def test_score_cli_rejects_changed_training_target(tmp_path, monkeypatch):
+    import hashlib
+    import json
+
+    smoke = tmp_path / "smoke"
+    generation = tmp_path / "generation"
+    smoke.mkdir()
+    generation.mkdir()
+    target = tmp_path / "targets.jsonl"
+    row = dict(group_id="g", source_pages=[1], html="<table><tr><td>A</td></tr></table>")
+    target.write_text(json.dumps(row) + "\n")
+    (smoke / "input-hashes.json").write_text(
+        json.dumps({"targets.jsonl": hashlib.sha256(target.read_bytes()).hexdigest()})
+    )
+    (smoke / "summary.json").write_text(json.dumps(dict(status="completed_smoke")))
+    (smoke / "run-manifest.json").write_text(
+        json.dumps(dict(config=dict(group_id=["g"], targets="targets.jsonl")))
+    )
+    (generation / "run-manifest.json").write_text(json.dumps(dict(smoke_run="smoke")))
+    (generation / "predictions.json").write_text(json.dumps([row]))
+    (generation / "summary.json").write_text(
+        json.dumps(
+            dict(
+                status="completed",
+                action="generate",
+                artifact_hashes={
+                    f.name: hashlib.sha256(f.read_bytes()).hexdigest() for f in generation.iterdir()
+                },
+            )
+        )
+    )
+    target.write_text(json.dumps(dict(row, html="<table><tr><td>B</td></tr></table>")) + "\n")
+    monkeypatch.setattr(
+        m.sys,
+        "argv",
+        [
+            "review",
+            "score",
+            "--project-root",
+            str(tmp_path),
+            "--smoke-run",
+            "smoke",
+            "--generation-run",
+            "generation",
+            "--run",
+            "20261115T000000Z-score-drift",
+        ],
+    )
+    with pytest.raises(ValueError, match="SHA"):
+        m.main()
+    output = tmp_path / "artifacts/reconstruction-qwen-review/20261115T000000Z-score-drift"
+    assert (output / "failure.json").exists() and not (output / "summary.json").exists()
+
+
 def test_real_mapping_never_reads_gt_and_matches_training_prompt(tmp_path):
     import hashlib
     import json
