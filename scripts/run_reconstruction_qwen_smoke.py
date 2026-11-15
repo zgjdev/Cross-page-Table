@@ -16,6 +16,7 @@ from pathlib import Path
 
 from cptla.evaluation.pubtables_v2 import parse_full_document_image_id
 from cptla.reconstruction.checkpoint_state import load_state, save_state
+from cptla.reconstruction.chunked_loss import chunked_causal_loss
 from cptla.reconstruction.data import DATASET_REVISION, PROTOCOL, TRAIN_RELATIVE_PATH
 from cptla.reconstruction.grid import GRID_VERSION
 from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
@@ -186,6 +187,8 @@ def resume_config(args, input_hashes, model_hashes):
     )
     if getattr(args, "supervised_logits_only", False):
         contract["supervised_logits_only"] = True
+    if getattr(args, "loss_chunk_size", 0):
+        contract["loss_chunk_size"] = args.loss_chunk_size
     return contract
 
 
@@ -205,8 +208,13 @@ def main():
     parser.add_argument("--resume-state")
     parser.add_argument("--gradient-checkpointing", action="store_true")
     parser.add_argument("--supervised-logits-only", action="store_true")
+    parser.add_argument("--loss-chunk-size", type=int, default=0)
     args = parser.parse_args()
     validate(args.group_id, args.steps)
+    if not 0 <= args.loss_chunk_size <= 4096 or (
+        args.loss_chunk_size and args.supervised_logits_only
+    ):
+        raise ValueError("loss chunk size must be 0–4096 and exclusive with suffix logits")
     if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z(?:-[A-Za-z0-9_-]+)?", args.run):
         raise ValueError("timestamp run required")
     if not 1 <= args.max_tokens <= 65536 or args.gpu < 0:
@@ -447,7 +455,17 @@ def main():
                 }
                 optimizer.zero_grad(set_to_none=True)
                 started = time.monotonic()
-                loss = model(**batch).loss
+                if args.loss_chunk_size:
+                    labels = batch.pop("labels")
+                    base = model.get_base_model()
+                    hidden = base.model(
+                        **batch, use_cache=False, return_dict=True
+                    ).last_hidden_state
+                    loss = chunked_causal_loss(
+                        hidden, base.lm_head, labels, chunk_size=args.loss_chunk_size
+                    )
+                else:
+                    loss = model(**batch).loss
                 if not torch.isfinite(loss):
                     raise RuntimeError("nonfinite loss")
                 loss.backward()
@@ -475,7 +493,12 @@ def main():
                     peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                     input_tokens=len(item["input_ids"]),
                     supervised_tokens=sum(value != -100 for value in item["labels"]),
-                    logits_positions=item.get("logits_to_keep", len(item["input_ids"])),
+                    logits_positions=(
+                        sum(value != -100 for value in item["labels"])
+                        if args.loss_chunk_size
+                        else item.get("logits_to_keep", len(item["input_ids"]))
+                    ),
+                    loss_chunk_size=args.loss_chunk_size,
                 )
                 cursor += 1
                 losses.append(event)
