@@ -54,6 +54,17 @@ def test_completed_prediction_preserved_before_later_failure():
     assert len(saved) == 1 and saved[0]["group_id"] == "0"
 
 
+def test_untrained_probe_preserves_training_config_and_rejects_overlap():
+    config = dict(group_id=["trained"], upstream_run=["old"], inputs="input", targets="target")
+    selected = m.probe_config(config, ["untrained"], ["old", "extra"])
+    assert config["group_id"] == ["trained"]
+    assert selected["group_id"] == ["untrained"] and selected["targets"] == "target"
+    with pytest.raises(ValueError):
+        m.probe_config(config, ["trained"], ["old"])
+    with pytest.raises(ValueError):
+        m.probe_config(config, ["untrained"], [])
+
+
 def test_real_mapping_never_reads_gt_and_matches_training_prompt(tmp_path):
     import hashlib
     import json

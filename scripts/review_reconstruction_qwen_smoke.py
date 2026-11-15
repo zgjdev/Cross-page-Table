@@ -23,6 +23,19 @@ def safe(root, path):
     return result
 
 
+def probe_config(training_config, groups, upstreams):
+    """显式、未参与该smoke训练的train_fit接口探针；不修改训练记录。"""
+    if (
+        not 1 <= len(groups) <= 16
+        or len(set(groups)) != len(groups)
+        or set(groups) & set(training_config["group_id"])
+        or not upstreams
+        or len(upstreams) != len(set(upstreams))
+    ):
+        raise ValueError("probe requires 1–16 distinct untrained groups and upstream runs")
+    return dict(training_config, group_id=list(groups), upstream_run=list(upstreams))
+
+
 def generate(examples, backend, budget, *, on_prediction=None):
     groups = [row["group_id"] for row in examples]
     if not 1 <= len(groups) <= 16 or len(set(groups)) != len(groups) or not 1 <= budget <= 32768:
@@ -175,6 +188,8 @@ def main():
     parser.add_argument("--run", required=True)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--max-new-tokens", type=int, default=4096)
+    parser.add_argument("--probe-group-id", action="append")
+    parser.add_argument("--probe-upstream-run", action="append")
     args = parser.parse_args()
     root = args.project_root.resolve()
     if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z(?:-[A-Za-z0-9_-]+)?", args.run):
@@ -203,6 +218,12 @@ def main():
         if summary.get("status") != "completed_smoke":
             raise ValueError("smoke not completed")
         config = json.loads(read(smoke / "run-manifest.json"))["config"]
+        if bool(args.probe_group_id) != bool(args.probe_upstream_run):
+            raise ValueError("probe requires both explicit groups and upstream runs")
+        if args.probe_group_id:
+            if args.action != "generate":
+                raise ValueError("score obtains probe scope from generation receipt")
+            config = probe_config(config, args.probe_group_id, args.probe_upstream_run)
         if not 1 <= len(config["group_id"]) <= 16 or len(set(config["group_id"])) != len(
             config["group_id"]
         ):
@@ -217,6 +238,8 @@ def main():
                 code_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 utc=datetime.now(UTC).isoformat(),
                 G2_passed=False,
+                probe_group_ids=args.probe_group_id,
+                probe_upstream_runs=args.probe_upstream_run,
             ),
         )
         if args.action == "generate":
@@ -309,7 +332,12 @@ def main():
             receipt = json.loads(read(generation / "summary.json"))
             if receipt.get("status") != "completed" or receipt.get("action") != "generate":
                 raise ValueError("generation incomplete")
-            provenance = json.loads(read(generation / "run-manifest.json"))
+            provenance = json.loads(
+                read(
+                    generation / "run-manifest.json",
+                    receipt["artifact_hashes"]["run-manifest.json"],
+                )
+            )
             if provenance["smoke_run"] != smoke.relative_to(root).as_posix():
                 raise ValueError("generation belongs to another smoke")
             predictions = json.loads(
@@ -317,6 +345,10 @@ def main():
                     generation / "predictions.json", receipt["artifact_hashes"]["predictions.json"]
                 )
             )
+            if provenance.get("probe_group_ids"):
+                config = probe_config(
+                    config, provenance["probe_group_ids"], provenance["probe_upstream_runs"]
+                )
             groups = config["group_id"]
             targets = []
             for line in read(safe(root, config["targets"])).decode("utf-8-sig").split("\n"):
