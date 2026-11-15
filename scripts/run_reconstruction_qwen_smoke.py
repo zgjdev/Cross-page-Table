@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from cptla.evaluation.pubtables_v2 import parse_full_document_image_id
+from cptla.reconstruction.checkpoint_state import load_state, save_state
 from cptla.reconstruction.data import DATASET_REVISION, PROTOCOL, TRAIN_RELATIVE_PATH
 from cptla.reconstruction.grid import GRID_VERSION
 from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
@@ -160,6 +161,28 @@ def gpu_guard(gpu, minimum):
     return dict(free_mib=int(result.stdout.strip()), processes=processes.stdout.strip())
 
 
+def resume_config(args, input_hashes, model_hashes):
+    """恢复契约排除运行位置和本次步数，保留影响数值路径的配置。"""
+    return dict(
+        schema="qwen-bounded-smoke-resume-v1",
+        groups=list(args.group_id),
+        seed=20261109,
+        max_tokens=args.max_tokens,
+        min_pixels=65536,
+        max_pixels=262144,
+        gradient_checkpointing=args.gradient_checkpointing,
+        use_reentrant=False,
+        input_hashes=dict(input_hashes),
+        model_hashes=dict(model_hashes),
+        optimizer=dict(name="AdamW", lr=1e-4, weight_decay=0.01),
+        lora=dict(r=16, alpha=32, dropout=0.05, targets=["q_proj", "k_proj", "v_proj", "o_proj"]),
+        dtype="bfloat16",
+        attention="sdpa",
+        grad_accumulation=1,
+        clip_grad_norm=1.0,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, required=True)
@@ -173,6 +196,8 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=8192)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--execute-smoke", action="store_true")
+    parser.add_argument("--resume-state")
+    parser.add_argument("--gradient-checkpointing", action="store_true")
     args = parser.parse_args()
     validate(args.group_id, args.steps)
     if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z(?:-[A-Za-z0-9_-]+)?", args.run):
@@ -297,6 +322,33 @@ def main():
                 removed_processor_fields=["token_type_ids"],
             ),
         )
+        if args.resume_state:
+            resume_directory = safe(root, args.resume_state)
+            receipt_path = safe(resume_directory, "manifest.json")
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            if (
+                receipt.get("format") != "cptla-self-produced-training-state-v1"
+                or receipt.get("status") != "completed"
+            ):
+                raise ValueError("resume requires completed self-produced training state")
+            contract = resume_config(args, hashes, model_hashes)
+            canonical = json.dumps(
+                contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+            )
+            if receipt.get("config_hash") != hashlib.sha256(canonical.encode()).hexdigest():
+                raise ValueError("resume config mismatch")
+            state_path = safe(resume_directory, "state.pt")
+            with state_path.open("rb") as stream:
+                if hashlib.file_digest(stream, "sha256").hexdigest() != receipt.get("sha256"):
+                    raise ValueError("resume state SHA mismatch")
+            write(
+                "resume-source.json",
+                dict(
+                    path=resume_directory.relative_to(root).as_posix(),
+                    manifest_sha256=hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
+                    state_sha256=receipt["sha256"],
+                ),
+            )
         if args.execute_smoke:
             write("gpu-before.json", gpu_guard(args.gpu, 20480))
             os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -352,15 +404,27 @@ def main():
             if not trainable or any("lora_" not in name or "visual" in name for name in trainable):
                 raise ValueError("unexpected trainable parameter")
             write("trainable.json", {name: list(value.shape) for name, value in trainable.items()})
-            initial = {name: value.detach().cpu().clone() for name, value in trainable.items()}
             optimizer = torch.optim.AdamW(trainable.values(), lr=1e-4)
+            resume_contract = resume_config(args, hashes, model_hashes)
+            write("resume-config.json", resume_contract)
+            start_step, cursor = 0, 0
+            if args.resume_state:
+                restored = load_state(
+                    root, args.resume_state, model, optimizer, config=resume_contract, trusted=True
+                )
+                start_step, cursor = restored["step"], restored["cursor"]
+            initial = {name: value.detach().cpu().clone() for name, value in trainable.items()}
             model.config.use_cache = False
+            if args.gradient_checkpointing:
+                model.gradient_checkpointing_enable(
+                    gradient_checkpointing_kwargs={"use_reentrant": False}
+                )
             model.train()
             torch.cuda.reset_peak_memory_stats()
             losses = []
             for step in range(args.steps):
                 gpu_guard(args.gpu, 8192)
-                item = encoded[step % len(encoded)]
+                item = encoded[cursor % len(encoded)]
                 batch = {
                     key: torch.tensor([value], device="cuda")
                     if isinstance(value, list)
@@ -387,7 +451,9 @@ def main():
                 optimizer.step()
                 torch.cuda.synchronize()
                 event = dict(
-                    step=step + 1,
+                    step=start_step + step + 1,
+                    invocation_step=step + 1,
+                    cursor=cursor,
                     loss=float(loss.detach().item()),
                     gradient_norm_sum=gradient,
                     preclip_global_norm=clipnorm,
@@ -395,6 +461,7 @@ def main():
                     seconds=time.monotonic() - started,
                     peak_allocated_bytes=torch.cuda.max_memory_allocated(),
                 )
+                cursor += 1
                 losses.append(event)
                 write(f"step-{step + 1:03d}.json", event)
                 gpu_guard(args.gpu, 8192)
@@ -433,6 +500,26 @@ def main():
                         for p in checkpoint.iterdir()
                         if p.is_file()
                     },
+                ),
+            )
+            saved_state = save_state(
+                root,
+                output / "training-state",
+                model,
+                optimizer,
+                step=start_step + args.steps,
+                cursor=cursor,
+                config=resume_contract,
+            )
+            write(
+                "training-state-reference.json",
+                dict(
+                    path=saved_state.relative_to(root).as_posix(),
+                    manifest_sha256=hashlib.sha256(
+                        (saved_state / "manifest.json").read_bytes()
+                    ).hexdigest(),
+                    total_steps=start_step + args.steps,
+                    cursor=cursor,
                 ),
             )
             write("gpu-after.json", gpu_guard(args.gpu, 8192))

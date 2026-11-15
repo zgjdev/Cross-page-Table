@@ -94,3 +94,23 @@ def test_mapping_train_only(tmp_path):
     input_path.write_text("\n".join(json.dumps(row) for row in rows))
     with pytest.raises(ValueError):
         m.load_examples(tmp_path, input_path, targets, [upstream], ["g0"], read)
+
+
+def test_resume_config_excludes_operational_paths():
+    from types import SimpleNamespace
+
+    args = SimpleNamespace(
+        group_id=["a", "b"],
+        max_tokens=8192,
+        gradient_checkpointing=False,
+        run="first",
+        resume_state=None,
+        steps=1,
+    )
+    first = m.resume_config(args, {"inputs": "abc"}, {"weight": "def"})
+    args.run, args.resume_state, args.steps = "second", "old/state", 50
+    assert m.resume_config(args, {"inputs": "abc"}, {"weight": "def"}) == first
+    args.gradient_checkpointing = True
+    assert m.resume_config(args, {"inputs": "abc"}, {"weight": "def"}) != first
+    args.gradient_checkpointing = False
+    assert m.resume_config(args, {"inputs": "changed"}, {"weight": "def"}) != first
