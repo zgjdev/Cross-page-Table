@@ -40,6 +40,20 @@ def test_assistant_message_rejected():
         )
 
 
+def test_completed_prediction_preserved_before_later_failure():
+    saved = []
+    examples = [dict(group_id=str(i), source_pages=[i], messages=[]) for i in range(2)]
+
+    def backend(messages, budget):
+        if saved:
+            raise RuntimeError("later generation failed")
+        return "raw", 1, True
+
+    with pytest.raises(RuntimeError):
+        m.generate(examples, backend, 4096, on_prediction=saved.append)
+    assert len(saved) == 1 and saved[0]["group_id"] == "0"
+
+
 def test_real_mapping_never_reads_gt_and_matches_training_prompt(tmp_path):
     import hashlib
     import json

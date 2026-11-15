@@ -23,7 +23,7 @@ def safe(root, path):
     return result
 
 
-def generate(examples, backend, budget):
+def generate(examples, backend, budget, *, on_prediction=None):
     groups = [row["group_id"] for row in examples]
     if not 1 <= len(groups) <= 16 or len(set(groups)) != len(groups) or not 1 <= budget <= 32768:
         raise ValueError("invalid group/token scope")
@@ -44,6 +44,8 @@ def generate(examples, backend, budget):
                 status="truncated" if truncated else "completed",
             )
         )
+        if on_prediction is not None:
+            on_prediction(predictions[-1])
     return predictions
 
 
@@ -278,7 +280,27 @@ def main():
                 gpu_guard(args.gpu, 8192)
                 return raw, len(tokens), bool(tokens and tokens[-1] in eos_ids)
 
-            predictions = generate(examples, backend, args.max_new_tokens)
+            completed = 0
+
+            def persist_prediction(prediction):
+                nonlocal completed
+                completed += 1
+                write(f"prediction-{completed:03d}.json", prediction)
+                print(
+                    json.dumps(
+                        dict(
+                            completed=completed,
+                            expected=len(examples),
+                            group_id=prediction["group_id"],
+                            status=prediction["status"],
+                        )
+                    ),
+                    flush=True,
+                )
+
+            predictions = generate(
+                examples, backend, args.max_new_tokens, on_prediction=persist_prediction
+            )
             write("predictions.json", predictions)
         else:
             if not args.generation_run:
