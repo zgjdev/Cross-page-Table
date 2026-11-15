@@ -178,6 +178,8 @@ def resume_config(args, input_hashes, model_hashes):
         lora=dict(r=16, alpha=32, dropout=0.05, targets=["q_proj", "k_proj", "v_proj", "o_proj"]),
         dtype="bfloat16",
         attention="sdpa",
+        deterministic_algorithms=True,
+        cublas_workspace_config=":4096:8",
         grad_accumulation=1,
         clip_grad_norm=1.0,
     )
@@ -352,6 +354,7 @@ def main():
         if args.execute_smoke:
             write("gpu-before.json", gpu_guard(args.gpu, 20480))
             os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
             import torch
             from peft import (
                 LoraConfig,
@@ -371,6 +374,7 @@ def main():
             random.seed(20261109)
             torch.manual_seed(20261109)
             torch.cuda.manual_seed_all(20261109)
+            torch.use_deterministic_algorithms(True)
             processor = AutoProcessor.from_pretrained(
                 str(model_path), local_files_only=True, min_pixels=65536, max_pixels=262144
             )
