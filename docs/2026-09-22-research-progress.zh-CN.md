@@ -491,3 +491,7 @@
 2026-11-15 15:32北京时间：真实确定性Qwen续训参数/optimizer/RNG完全一致；15480-token/10片段真实反传完成（34.51GB峰值）。8表102步训练完成，生成/评分运行中；监督后缀logits长样本验收运行中。全量研究关口未通过，详见[本轮技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。
 
 2026-11-15 15:42北京时间：最长200样本41582 tokens真实反传通过（49.13GB）；102步8表复评合法/结构7/8、内容6/8，仍有rowspan错误，已继续同8表至302步后复评。已知污染整文档隔离层覆盖7359文档完成，原split不改，见[隔离记录](experiments/2026-11-15-known-overlap-quarantine-overlay.zh-CN.md)及[技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。
+
+2026-11-15 20:32北京时间：302步8训练表网格结构/内容8/8，独立未训练8短表探针运行中；全fit裁剪5322表12300片段联合SHA核验完成，37352文件通过，模型预测仍缺11642片段。详见[全量裁剪核验](experiments/2026-11-15-full-fit-crop-preparation.zh-CN.md)与[Qwen技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。未放行全量研究训练，继续自动化入口补齐。
+
+2026-11-15 20:46北京时间：未训练8短表复评合法7/8、结构1/8、内容0/8，与同组规则对照无总体结构计数改善；不能用训练8/8代替泛化。评分绑定训练target SHA修复后新目录复算结果不变。分片复用服务器2组9片段通过，205份后续分片计划保存但未执行。219项服务器测试/Ruff通过，本轮任务均结束，G0/G1/G3与全量就绪仍pending。[Qwen验收与边界](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)、[全量裁剪](experiments/2026-11-15-full-fit-crop-preparation.zh-CN.md)、[分片复用](experiments/2026-11-15-prepared-shard-reuse.zh-CN.md)。

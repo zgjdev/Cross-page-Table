@@ -53,3 +53,27 @@ c2908f3正式加入 `scripts/review_reconstruction_qwen_smoke.py generate|score`
 残差只读分析 `artifacts/reconstruction-diagnostics/20261115T074259Z-qwen102-residuals/report.json`：PMC11262699-table-2的GT为51x3，预测把rowspan5写成3、另一个rowspan2漏掉并补空td，导致未覆盖网格；PMC11560864-table-5为88x3，仅一个cell将弯引号Didn’t输出为直引号Didn't，严格原文exact因此失败。保留评分口径，不利用此例静默改归一化或修补预测。不能把两者都泛称文字完全识别失败。
 
 用户继续授权自动化工作，07:42:29 UTC启动同8表受限续训至累计302步，每段50步新目录并恢复完整optimizer/RNG。launcher `artifacts/reconstruction-launchers/20261115T074229Z-qwen-overfit302`，顺序输出 `artifacts/reconstruction-qwen-smoke/20261115T074229Z-overfit-{152,202,252,302}`，随后新目录 `artifacts/reconstruction-qwen-review/20261115T074229Z-overfit302-{generate,score}` 完整8表复评。所有argv/PID/log独立保存、GPU0守卫，无新数据下载，不改数据/旧检查点，不扩大到新训练样本。代码6621a35；逐例生成现在即时独占保存，避免后续失败丢掉已完成案例。运行中，不预报达到8/8。
+
+## 分块词表损失验证完成（2026-11-15 07:51 UTC检查点）
+
+0bde16b新增可选`--loss-chunk-size 512`，与supervised-logits-only互斥；完整上下文一次进入Qwen视觉/语言骨干，仅监督位置的lm_head/交叉熵按512 token分块并用非重入checkpoint重算。所有目标保留，causal shift包含首个assistant目标；不属于表格/上下文分块，不改变研究输入条件。块大小进入恢复契约。仅允许Linear lm_head以排除未保存随机状态的随机head。先在服务器缺模块失败，再通过真实CPU loss/hidden/head梯度等价测试；本地torch缺失的skip不冒充通过。
+
+真实GPU3单步对照均exit0，launcher `artifacts/reconstruction-launchers/20261115T074851Z-chunked-loss-memory`，run `artifacts/reconstruction-qwen-smoke/20261115T074851Z-chunked-{15480,41582}`。15480完整输入/6917监督：loss0.2590705156，峰值8,743,917,056 bytes；41582完整输入/21747监督：loss0.1187025160，峰值16,015,141,888 bytes，13.938秒优化步。相比监督后缀logits版，最长样本峰值49.13GB→16.02GB。所有来源、原模型与旧结果保留，源/模型SHA末尾通过，checkpoint保存完成。
+
+数值边界：CPU目标/梯度在测试精度内等价，实际BF16分块GEMM及梯度累积有数值舍入差异，不能声称不同实现逐位等价。不同方法的正式对照需固定同一种损失实现和块大小。现有8表过拟合仍沿用完整logits轨迹，未在恢复中切换实现。分块loss也未证明全部5322输入长度/图像预算覆盖或长表生成效果。
+
+## 302步训练样本复评完成；未训练样本检查启动
+
+2026-11-15 12:26 UTC恢复只读检查确认：累计302步训练早已于07:49:45 UTC结束，四段续训与随后generate/score均exit0。末段run-manifest代码commit为e95199a，run内实际脚本SHA保存；不同段代码来源各自记录，不把整个轨迹伪记成单一后续commit。`artifacts/reconstruction-qwen-review/20261115T074229Z-overfit302-score/scores.json`：8目标/8预测、extra0，结构/内容/来源网格诊断exact均8/8，全部网格合法。评分开始时间07:59:02 UTC。这只完成直接SFT的8表过拟合技术验证，不是独立G2确认、不代表复杂结构模块已实现，也不证明泛化。
+
+12:31:11 UTC启动未训练短表接口探针，code e74cd4e。固定seed20261109，从既有200表中完整训练上下文<=4096且排除已用于各类训练smoke的10组，共35候选随机选8组；选前不看新模型结果。明确仅train_fit短表技术范围，非总体代表样本、非train_confirm/test。名单/排除集/长度审计SHA见 `artifacts/reconstruction-launchers/20261115T123111Z-untrained8-probe/selection.json`；完整argv/PID/log同目录。保持302步checkpoint、原prompt、原图像预算、max_new_tokens4096和严格评分；生成完全input-only，不读GT。
+
+新产物 `artifacts/reconstruction-qwen-review/20261115T123111Z-untrained8-{generate,score}`，当前运行中。入口新增显式probe组与upstream参数，禁止与该smoke训练组相交；评分从已hash核验的生成manifest读取相同范围。6项本地回归通过，先缺方法失败再实现；此前服务器全重建测试205项通过。不得将训练8/8代替这组未训练样本结果。
+
+## 未训练短表探针完成与研究边界（2026-11-15 12:39 UTC核验）
+
+`20261115T123111Z-untrained8-{generate,score}`均exit0，8目标/8预测、extra0，无生成预算截断；严格网格合法7/8，结构exact1/8，内容exact0/8。唯一非法项PMC11318497-table-0为mismatched closure: table，原文同时有三列表头/四列正文等结构不一致，未修改原输出或评分规则。固定同8组的B0与alignment均结构1/8、内容0/8、合法8/8。逐组配对和三个源score SHA保存于`artifacts/reconstruction-diagnostics/20261115T123900Z-untrained8-paired/report.json`。该探针经过短上下文筛选、样本仅8，不能估计全体泛化成绩；目前不足以证明直接SFT有未训练样本收益或满足99%输出合法率。训练8/8仅保留为过拟合技术验收，不用继续同8表训练来代替未训练验证。
+
+独立代码审查指出score曾未绑定训练时target SHA；5d3928a修复，将正规化目标路径与smoke input-hashes绑定，缺失/漂移拒绝。实际CLI回归先DID NOT RAISE失败再通过。新目录`artifacts/reconstruction-qwen-review/20261115T124208Z-{train8,untrained8}-pinned-score`按固定SHA复算，两组全部逐表结果与原结果完全相同；此为防漂移缺口修复，未发现既有目标实际漂移。Spec/quality复审通过本轮受限实现，不代表研究关口通过。
+
+本轮服务器完整重建测试**219项通过**（12:46 UTC检查点），Ruff通过。真实恢复、长样本反传、训练样本拟合、未训练短表复评均已结束，当前没有本轮运行中的GPU任务。全量实验仍缺：正式G0数据/近重复验收、G1人工可修复空间与独立审计、通过验证的共同结构模块及G3同预算机制对照；完整train_fit局部预测尚缺11642片段。现有代码是受限直接SFT技术底座，不能冒称完整研究框架或完整训练器已就绪。用户暂无法安排两人审计，保持pending；原计划门槛不自动取消。
