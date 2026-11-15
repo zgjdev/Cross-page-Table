@@ -31,3 +31,39 @@
 只读缩略图检查按候选文件顺序前三个距离0配对：PMC10169604_page_16与PMC10192700_page_13，PMC10205825_page_6与PMC10309525_page_4，PMC10315023_page_4与PMC10349443_page_4。三对版式近似但内容明显不同，判为Agent初查误报，不是双人标签。故不能按dHash距离0自动合并文档，更不能把17988作为确认重复数；需文本证据联合筛查、抽样校准与漏检检查。此证据阻止过早冻结划分，但不阻止后续CPU自动化。
 
 独立代码复核子代理因服务额度限制退出，主代理仍完成全图产物核验和上述可视初查，不能把未完成独立复核写为通过。剩余自动化：联合文本/图像候选筛查、200表审计准备、正式评分契约核准、训练/恢复链实现。完整实验尚未就绪，已有结果不构成G1或G2/G3通过。
+
+## 2026-11-14 17:45北京时间：联合候选筛查与200表CPU准备
+
+联合审计artifacts/reconstruction-joint-audits/20261114T094520Z完成。对视觉候选涉及3345篇train文档的全部表HTML提取数据文本，NFKC、空白折叠、保留大小写，5词shingle Jaccard；14082文档对全部<0.5，无>=0.5候选。原图候选与3345源标注SHA读取/结束复验，input-hashes保存。仅候选交集筛查，整篇聚合会稀释单表重合；不覆盖视觉检索漏检，不可宣称无泄漏或自动冻结划分。未读取test内容。
+
+17:46:04北京时间启动固定原audit-sample中200组CPU prepare-only，run20261114T094604Z-200table-prepare，PID1840819，launcher artifacts/reconstruction-launchers/同run/包含完整argv/start/pid/stdout；输出artifacts/reconstruction-upstream/同run/。使用eval312，PYTHONPATH=src，PYTHONDONTWRITEBYTECODE=1，现有run_reconstruction_upstream.py，--prepare-only，输入原train-full inputs.jsonl、200个group-id。不下载、不改原图、不使用GPU、不推理。当前465片段来源已保存，等待prepared终态及覆盖SHA核验。
+
+## 180表诊断补齐启动（不是全量训练放行）
+
+原200表CPU prepare终态prepared，200组658片段，全部source.json与prepared一致、658 crop SHA复验通过。与已完成20表集合交集恰为20，复用旧66片段，只补剩余180表592片段。
+
+依据用户反复明确“持续完成自动化部分”的授权，本轮继续固定200表诊断样本的推理；此为为G1取得诊断材料的受限试验，不将G0/G1或独立人审记为已通过，也不启动全量训练。此前文档笼统“不扩大GPU”在本次200表诊断范围内作执行澄清；不授权打开confirm/test或大规模训练。
+
+20261114T094831Z-180table-diagnostic于09:48:31 UTC启动，PID1856910，GPU0。启动前free60950MiB/used20089MiB，已有三进程3052349/1462678/1179599，未干预；沿用20000MiB启动与8192MiB逐片保护。launcher artifacts/reconstruction-launchers/同run/command.json保存完整argv、时间、20表复用入口；pid.json/stdout.log同目录；输出artifacts/reconstruction-upstream/同run/。Python .venvs/paddle-v15-20261023T081029Z-paddle-v15/bin/python，代码e375783，固定同权重/seed0/原方向，inputs原train-full，180个显式group-id，--gpu 0。无新数据下载，不覆盖原数据或旧预测；start_new_session、stdin DEVNULL、stdout独立日志。预计数小时，须以summary与完整覆盖验收，不能凭进程启动宣称模型完成。完成后联合旧20表做200表B0/对照及错误分层。
+
+## Qwen骨干准备（尚未完成下载）
+
+复用既定Qwen3-VL-2B-Instruct候选，官方API固定revision89644892e4d85e24eaac8bacfd4f463576704203，12文件4266648961字节，官方LFS/gitblob校验清单configs/models/qwen3-vl-2b-instruct-2026-11-14.json已提交08c8403（上一61bd55c只有文档，因models通配忽略，后补精确文件）。dry-run通过。服务器项目盘34T可用。
+
+09:51:41 UTC启动下载run20261114T095141Z-qwen3-vl，PID1877352，launcher artifacts/reconstruction-launchers/同run/{command.json,pid.json,stdout.log}；命令.venvs/eval312/bin/python scripts/download_public_models.py --manifest configs/models/qwen3-vl-2b-instruct-2026-11-14.json --run-id 20261114T095141Z-qwen3-vl。下载器复用hf-mirror.com，按官方固定SHA逐文件校验，token=False，缓存在项目内。输出models/同run/qwen3-vl-2b-instruct，日志logs/model-downloads/同run。权重只到服务器，不到本地；无GPU训练，完成以download-manifest与summary为准。
+
+## 独立Qwen接口环境安装中
+
+09:53:59 UTC创建.venvs/20261114T095359Z-qwen-env，安装PID1892268。launcher artifacts/reconstruction-launchers/20261114T095359Z-qwen-env/{command.json,pid.json,stdout.log}，tmp/cache均在同目录。依赖清单requirements-qwen3-vl-20261114.txt，torch2.6.0/torchvision0.21.0、transformers4.57.1、accelerate1.10.1、peft0.17.1、Pillow11.3、numpy1.26.4；官方CUDA12.4索引作为extra-index。使用独立venv，不修改旧Paddle环境。原官方模型文档与transformers4.57.1 Qwen3VL文档确认API存在，安装兼容性及真实processor仍待验证。
+
+当前180表诊断已保存16片段；Qwen模型大权重下载中、环境依赖下载中，未完成任何Qwen模型推理或训练。后续继续真实processor CPU验收和200表联合评分，不在单步完成时结束。
+
+## 2026-11-14 23:35北京时间：200表与Qwen真实接口结果
+
+180表补跑于13:41:19 UTC completed，592/592片段；联合旧20表，固定200表/658片段全部齐全。两组新评分artifacts/reconstruction-baselines/20261114T153243Z-200table-b0与同前缀200table-alignment：200目标/预测，missing/extra片段路径0，失败各30。B0 top23/200=0.115、con1/200=.005；对照top69/200=.345、con3/200=.015。全失败保留分母。配对汇总artifacts/reconstruction-diagnostics/20261114T153435Z-200table-paired：196文档，top改善47/退化1，con改善2/退化0，删除211行；按原抽样权重计算top .106758→.358491、con .012942→.037451，探索性诊断非官方指标。失败为首行证据不足21、歧义/不匹配9。退化PMC11277303-table-0删除两行重复列标题；真值为何保留该结构待逐例核验，不自动改标签或反调规则。
+
+Qwen权重于09:57:28 UTC下载完成12/12、日志status0，CPU probe再次独立重算所有权重SHA通过。新环境安装完成，pip-freeze见artifacts/reconstruction-qwen-probes/20261114T153207Z/pip-freeze.txt。最初真实processor因assistant string不符合多模态list content失败，现场保留；回归先失败再修为2d4ef18，不修改目标文本。真实双图CPU probe completed：1452 tokens，监督537，pixel_values[1400,1536]、image_grid_thw[2,3]，max_pixels262144/min65536/token预算32768，未截断。
+
+真实GPU0单表生成probe artifacts/reconstruction-qwen-probes/20261114T153357Z-model-smoke完成，gid PMC10488684-table-0，双图加局部预测，无GT作为prompt，seed0/bfloat16/SDPA/do_sampleFalse/max_new_tokens4096，16.02秒、torch峰值分配4452087296bytes。manifest/prediction/summary保存。严格原文评分artifacts/reconstruction-diagnostics/20261114-qwen-single-score为invalid_html，因原始输出包有完整Markdown代码围栏；尚不算正式Qwen效果。原文保留，后续独立评估仅外层围栏的格式适配，不修改原评分器、不填补内容。无优化/训练。
+
+外层围栏去除的单独诊断保存在artifacts/reconstruction-diagnostics/20261114-qwen-single-unfenced，保留源预测SHA与变换说明；仍invalid_html（multiple or nested tables），不能把格式清理视为整表重建成功。本轮将继续实现最多16表/50step的受限LoRA技术smoke，只验证自动化训练接口、梯度/参数/恢复，不放行全量，不宣称G1或G2通过。
