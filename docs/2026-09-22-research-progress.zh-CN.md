@@ -489,3 +489,5 @@
 2026-11-15 10:38北京时间：8表LoRA生成复核完成，合法6/8、结构4/8、内容2/8，仅训练样本。全5322目标长度审计发现176表超过原8192输出预算，需扩大预算/验证长样本。完整optimizer/RNG恢复代码已部署，真实Qwen连续2步对分段1+1步正在验证；详情见[11月15日技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。全量训练尚未就绪，不将技术smoke当研究验收。
 
 2026-11-15 15:32北京时间：真实确定性Qwen续训参数/optimizer/RNG完全一致；15480-token/10片段真实反传完成（34.51GB峰值）。8表102步训练完成，生成/评分运行中；监督后缀logits长样本验收运行中。全量研究关口未通过，详见[本轮技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。
+
+2026-11-15 15:42北京时间：最长200样本41582 tokens真实反传通过（49.13GB）；102步8表复评合法/结构7/8、内容6/8，仍有rowspan错误，已继续同8表至302步后复评。已知污染整文档隔离层覆盖7359文档完成，原split不改，见[隔离记录](experiments/2026-11-15-known-overlap-quarantine-overlay.zh-CN.md)及[技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。

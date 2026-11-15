@@ -37,3 +37,19 @@ summary completed_smoke，8组50步；224个LoRA参数张量改变、梯度非�
 c2908f3正式加入 `scripts/review_reconstruction_qwen_smoke.py generate|score`，生成入口不读GT，来源从input fragments推导；评分独立读取targets，原始输出不修补，截断计失败。4项本地测试包括真实文件映射、拒绝读取GT与训练prompt完全一致。
 
 217453f加入可选 `--supervised-logits-only`：针对环境内Transformers4.57.1 Qwen3-VL forward/ForCausalLMLoss实际代码，保留完整输入与图像、完整目标，只计算最后一个prompt位置至目标结尾的logits，labels同步后缀以保持causal shift。CPU float64 loss/hidden与weight梯度等价测试通过（服务器7项全过）；这不是目标截断。该开关加入resume契约，旧默认false保持兼容。新增token预算上界65536只用于显式长样本技术验证，不等于正式预算冻结。07:32:02 UTC启动GPU3同15,480样本及41,582-token最长200样本的逐例单步验证，launcher `artifacts/reconstruction-launchers/20261115T073202Z-supervised-logits-memory`，新run `20261115T073202Z-suffix-{15480,41582}`，先验验收pending。
+
+## 长样本反传验证完成（2026-11-15 07:33:46 UTC）
+
+`20261115T073202Z-suffix-15480` 单步成功：完整输入15480、监督6917、logits6918，峰值18,904,241,664 bytes，相比同样本完整logits的34,513,571,840 bytes下降约45.23%，loss均0.2590705454349518。BF16下梯度归约有微小数值差别（preclip norm 0.3245615 vs 0.3245768），不声称实际低精度参数逐位等价；CPU高精度目标/梯度等价测试已通过。
+
+`20261115T073202Z-suffix-41582` 最长200样本PMC10653545-table-0单步成功：完整输入41582、监督21747、logits21748；峰值49,134,122,496 bytes，13.604秒优化步，loss0.1187024。两run均completed_smoke/exit0，adapter与完整恢复state已保存，源/模型末尾SHA通过。只证明这两个样本可训练，未证明全5322训练上下文覆盖，更不代表长表生成质量。全部旧结果不变。
+
+服务器2026-11-15相关测试199项全通过（含CPU torch损失/梯度与断点测试）；Ruff通过。此后新增污染隔离3项专项本地通过；服务器专项结果另核验。
+
+## 102步复评完成与后续受限过拟合（2026-11-15 07:42 UTC）
+
+`artifacts/reconstruction-qwen-review/20261115T072834Z-overfit102-{generate,score}` 均完成/exit0，8目标/8预测、extra0、全部EOS结束/无预算截断。生成input-hashes不含targets.jsonl，source_pages仅从输入推导。严格网格合法7/8、结构exact7/8、内容exact6/8；这依然是训练样本复评，不代表G2独立确认或研究泛化。
+
+残差只读分析 `artifacts/reconstruction-diagnostics/20261115T074259Z-qwen102-residuals/report.json`：PMC11262699-table-2的GT为51x3，预测把rowspan5写成3、另一个rowspan2漏掉并补空td，导致未覆盖网格；PMC11560864-table-5为88x3，仅一个cell将弯引号Didn’t输出为直引号Didn't，严格原文exact因此失败。保留评分口径，不利用此例静默改归一化或修补预测。不能把两者都泛称文字完全识别失败。
+
+用户继续授权自动化工作，07:42:29 UTC启动同8表受限续训至累计302步，每段50步新目录并恢复完整optimizer/RNG。launcher `artifacts/reconstruction-launchers/20261115T074229Z-qwen-overfit302`，顺序输出 `artifacts/reconstruction-qwen-smoke/20261115T074229Z-overfit-{152,202,252,302}`，随后新目录 `artifacts/reconstruction-qwen-review/20261115T074229Z-overfit302-{generate,score}` 完整8表复评。所有argv/PID/log独立保存、GPU0守卫，无新数据下载，不改数据/旧检查点，不扩大到新训练样本。代码6621a35；逐例生成现在即时独占保存，避免后续失败丢掉已完成案例。运行中，不预报达到8/8。
