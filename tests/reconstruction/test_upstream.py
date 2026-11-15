@@ -176,3 +176,99 @@ def test_prepare_interrupt_preserves_failure(tmp_path, monkeypatch):
         runner.prepare(tmp_path, inputs, "run", [row["group_id"]])
     output = tmp_path / "artifacts/reconstruction-upstream/run"
     assert json.loads((output / "failure.json").read_text())["status"] == "interrupted"
+
+
+def test_reuse_copy_and_new_inference(tmp_path, monkeypatch):
+    inputs, row = fixture(tmp_path)
+    old, records = runner.prepare(tmp_path, inputs, "old", [row["group_id"]])
+    (old / "fragments/000000/prediction.json").write_text("old prediction")
+    before = {p: p.read_bytes() for p in old.rglob("*") if p.is_file()}
+    monkeypatch.setattr(Image.Image, "crop", lambda *a: pytest.fail("recropped"))
+    new, copied = runner.prepare(tmp_path, inputs, "new", [row["group_id"]], old)
+    assert not (new / "fragments/000000/prediction.json").exists()
+    assert json.loads((new / "fragments/000000/source.json").read_text()) == copied[0]
+
+    class Pipeline:
+        def predict_iter(self, path, **kwargs):
+            assert Path(path).is_relative_to(new)
+            yield SimpleNamespace(
+                json={
+                    "res": {
+                        "parsing_res_list": [dict(block_label="table", block_content="<table/>")]
+                    }
+                }
+            )
+
+    runner.infer(Pipeline(), new, copied)
+    assert all(p.read_bytes() == value for p, value in before.items())
+    with pytest.raises(FileExistsError):
+        runner.prepare(tmp_path, inputs, "new", [row["group_id"]], old)
+
+
+@pytest.mark.parametrize(
+    "damage", ["sha", "identity", "escape", "duplicate", "missing", "manifest"]
+)
+def test_reuse_rejects_bad_sources(tmp_path, damage):
+    inputs, row = fixture(tmp_path)
+    old, records = runner.prepare(tmp_path, inputs, "old", [row["group_id"]])
+    prepared = json.loads((old / "prepared.json").read_text())
+    record = prepared["fragments"][0]
+    if damage == "sha":
+        (old / record["crop_relpath"]).write_bytes(b"bad")
+    elif damage == "identity":
+        record["document_id"] = "wrong"
+    elif damage == "escape":
+        record["crop_relpath"] = "../../../../../escape.png"
+    elif damage == "duplicate":
+        prepared["fragments"].append(record)
+    elif damage == "missing":
+        prepared["fragments"] = []
+    else:
+        manifest = json.loads((old / "run-manifest.json").read_text())
+        manifest["inputs_sha256"] = "bad"
+        (old / "run-manifest.json").write_text(json.dumps(manifest))
+    (old / "prepared.json").write_text(json.dumps(prepared))
+    with pytest.raises(ValueError):
+        runner.prepare(tmp_path, inputs, "new", [row["group_id"]], old)
+    assert (tmp_path / "artifacts/reconstruction-upstream/new/failure.json").exists()
+
+
+@pytest.mark.parametrize(
+    "target", ["prepared.json", "run-manifest.json", "fragments/000000/source.json"]
+)
+def test_reuse_detects_read_window_mutation(tmp_path, monkeypatch, target):
+    inputs, row = fixture(tmp_path)
+    old, _ = runner.prepare(tmp_path, inputs, "old", [row["group_id"]])
+    changed = old / target
+    original = Path.read_bytes
+
+    def read_then_mutate(path):
+        data = original(path)
+        if path == changed:
+            path.write_bytes(data + b" ")
+        return data
+
+    monkeypatch.setattr(Path, "read_bytes", read_then_mutate)
+    with pytest.raises(ValueError, match="changed"):
+        runner.prepare(tmp_path, inputs, "new", [row["group_id"]], old)
+    assert (tmp_path / "artifacts/reconstruction-upstream/new/failure.json").exists()
+
+
+@pytest.mark.parametrize("subset", [False, True])
+def test_reuse_reordered_groups(tmp_path, subset):
+    inputs, row = fixture(tmp_path)
+    second = json.loads(json.dumps(row))
+    second["group_id"] = "PMC1-table-1"
+    second["fragments"][0]["fragment_id"] = "PMC1-table-1-part-0"
+    inputs.write_text("\n".join(json.dumps(r) for r in [row, second]))
+    old, _ = runner.prepare(tmp_path, inputs, "old", [row["group_id"], second["group_id"]])
+    selected = [second["group_id"]] if subset else [second["group_id"], row["group_id"]]
+    new, records = runner.prepare(tmp_path, inputs, "new", selected, old)
+    assert [r["group_id"] for r in records] == selected
+    assert len(list(new.rglob("crop.png"))) == len(selected)
+    for index, record in enumerate(records):
+        assert record["crop_relpath"] == f"fragments/{index:06d}/crop.png"
+        assert (
+            json.loads((new / record["crop_relpath"]).with_name("source.json").read_text())
+            == record
+        )

@@ -10,6 +10,7 @@ import os
 import platform
 import random
 import re
+import shutil
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -52,7 +53,7 @@ def failure(output, exc):
     )
 
 
-def prepare(root, inputs, run, groups):
+def prepare(root, inputs, run, groups, reuse_prepared_run=None):
     root = root.resolve()
     inputs = inside(root, inputs)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", run):
@@ -95,6 +96,42 @@ def prepare(root, inputs, run, groups):
                 training_allowed=False,
             ),
         )
+        reused_files = {}
+        reused = {}
+        provenance = None
+        if reuse_prepared_run is not None:
+            old = inside(root, Path(reuse_prepared_run))
+            prepared_path = inside(root, old / "prepared.json")
+            manifest_path = inside(root, old / "run-manifest.json")
+            manifest_bytes = manifest_path.read_bytes()
+            manifest = json.loads(manifest_bytes)
+            for key, expected in [
+                ("inputs_sha256", input_sha),
+                ("dataset_revision", DATASET_REVISION),
+                ("protocol", PROTOCOL),
+                ("input_track", "image-only"),
+            ]:
+                if manifest.get(key) != expected:
+                    raise ValueError(f"reuse manifest {key} mismatch")
+            prepared_bytes = prepared_path.read_bytes()
+            prepared = json.loads(prepared_bytes)
+            if prepared.get("status") != "prepared":
+                raise ValueError("reuse requires prepared status")
+            provenance = dict(
+                run=str(old),
+                prepared_sha256=hashlib.sha256(prepared_bytes).hexdigest(),
+                manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+            )
+            for record in prepared["fragments"]:
+                identity = (record["group_id"], record["fragment_id"])
+                if identity in reused:
+                    raise ValueError("duplicate reused fragment identity")
+                reused[identity] = record
+            for group in groups:
+                expected = {(group, f["fragment_id"]) for f in by_id[group]["fragments"]}
+                actual = {key for key in reused if key[0] == group}
+                if actual != expected:
+                    raise ValueError("reuse selected fragment coverage mismatch")
         records = []
         identities = set()
         image_root = inside(root, TRAIN_RELATIVE_PATH / "images")
@@ -142,8 +179,54 @@ def prepare(root, inputs, run, groups):
                     directory = output / "fragments" / f"{len(records):06d}"
                     directory.mkdir(parents=True)
                     crop = directory / "crop.png"
-                    with crop.open("xb") as stream:
-                        image.crop(tuple(box)).save(stream, format="PNG")
+                    if reuse_prepared_run is None:
+                        with crop.open("xb") as stream:
+                            image.crop(tuple(box)).save(stream, format="PNG")
+                    else:
+                        previous = reused[identity]
+                        expected_fields = dict(
+                            group_id=group,
+                            document_id=row["document_id"],
+                            **fragment,
+                            orientation="preserve_original",
+                            crop_size=[box[2] - box[0], box[3] - box[1]],
+                        )
+                        if any(previous.get(k) != v for k, v in expected_fields.items()):
+                            raise ValueError("reuse source identity mismatch")
+                        old_crop = inside(root, old / previous["crop_relpath"])
+                        if (
+                            not old_crop.is_relative_to(old / "fragments")
+                            or old_crop.name != "crop.png"
+                        ):
+                            raise ValueError("reuse crop escapes run")
+                        source_path = inside(root, old_crop.parent / "source.json")
+                        if not source_path.is_relative_to(old):
+                            raise ValueError("reuse source escapes run")
+                        source_bytes = source_path.read_bytes()
+                        if json.loads(source_bytes) != previous:
+                            raise ValueError("reuse prepared/source mismatch")
+                        if sha(old_crop) != previous["crop_sha256"]:
+                            raise ValueError("reuse crop SHA mismatch")
+                        source_sha = hashlib.sha256(source_bytes).hexdigest()
+                        reused_files[source_path] = source_sha
+                        reused_files[old_crop] = previous["crop_sha256"]
+                        with old_crop.open("rb") as src, crop.open("xb") as dst:
+                            shutil.copyfileobj(src, dst)
+                        if sha(crop) != previous["crop_sha256"] or sha(source_path) != source_sha:
+                            raise ValueError("reuse files changed during copy")
+                        with Image.open(crop) as copied:
+                            if list(copied.size) != expected_fields["crop_size"]:
+                                raise ValueError("reuse crop size mismatch")
+                        write(
+                            directory / "reuse-source.json",
+                            dict(
+                                **provenance,
+                                source_path=str(source_path),
+                                source_sha256=source_sha,
+                                crop_path=str(old_crop),
+                                crop_sha256=previous["crop_sha256"],
+                            ),
+                        )
                 if sha(source) != fragment["image_sha256"]:
                     raise ValueError("source changed during crop")
                 record = dict(
@@ -157,6 +240,15 @@ def prepare(root, inputs, run, groups):
                 )
                 records.append(record)
                 write(directory / "source.json", record)
+        if any(sha(path) != expected for path, expected in reused_files.items()):
+            raise ValueError("reuse source/crop changed during preparation")
+        if provenance is not None:
+            if (
+                sha(prepared_path) != provenance["prepared_sha256"]
+                or sha(manifest_path) != provenance["manifest_sha256"]
+            ):
+                raise ValueError("reuse manifests changed during preparation")
+            write(output / "reuse-manifest.json", provenance)
         if sha(inputs) != input_sha:
             raise ValueError("input manifest changed during preparation")
         write(output / "prepared.json", dict(status="prepared", fragments=records))
@@ -228,9 +320,10 @@ def main():
     parser.add_argument("--group-id", action="append", required=True)
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--reuse-prepared-run", type=Path)
     args = parser.parse_args()
     root = args.project_root.resolve()
-    output, records = prepare(root, args.inputs, args.run, args.group_id)
+    output, records = prepare(root, args.inputs, args.run, args.group_id, args.reuse_prepared_run)
     if args.prepare_only:
         return
     try:
