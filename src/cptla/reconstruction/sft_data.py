@@ -6,7 +6,19 @@ from pathlib import PurePosixPath
 from cptla.reconstruction.grid import GRID_VERSION, html_to_grid
 
 
-def build_messages(inputs, target):
+def output_instruction(output_format):
+    if output_format == "html":
+        return "根据按顺序提供的表格片段图像及局部预测，恢复完整表格。只输出完整 HTML table。"
+    if output_format == "grid":
+        return (
+            "根据按顺序提供的表格片段图像及局部预测，恢复完整表格。只输出global-grid-v1 JSON："
+            "schema_version,num_rows,num_cols,cells；每个cell包含r0,r1,c0,c1,text,role。"
+            "坐标为零起点半开区间，role为header或data；完整覆盖网格，无重叠，不输出代码围栏。"
+        )
+    raise ValueError("unsupported_output_format")
+
+
+def build_messages(inputs, target, *, output_format="html"):
     """严格白名单隔离输入/标签；只接受显式 train_fit/image-only。"""
     if set(inputs) != {"group_id", "split", "track", "fragments"}:
         raise ValueError("unexpected_input_fields")
@@ -19,13 +31,19 @@ def build_messages(inputs, target):
     if target["grid_version"] != GRID_VERSION:
         raise ValueError("grid_version_mismatch")
     html_to_grid(target["html"])  # 仅验证；标签原文不改写。
+    instruction = output_instruction(output_format)
+    target_text = target["html"]
+    if output_format == "grid":
+        from cptla.reconstruction.grid_sequence import html_to_sequence
+
+        target_text = html_to_sequence(target_text)
     fragments = inputs["fragments"]
     if not isinstance(fragments, list) or not fragments:
         raise ValueError("empty_fragments")
     content = [
         {
             "type": "text",
-            "text": "根据按顺序提供的表格片段图像及局部预测，恢复完整表格。只输出完整 HTML table。",
+            "text": instruction,
         }
     ]
     for f in fragments:
@@ -46,7 +64,7 @@ def build_messages(inputs, target):
         content.extend(
             [{"type": "image", "image": path}, {"type": "text", "text": f["prediction_html"]}]
         )
-    return [{"role": "user", "content": content}, {"role": "assistant", "content": target["html"]}]
+    return [{"role": "user", "content": content}, {"role": "assistant", "content": target_text}]
 
 
 class SFTCollator:
@@ -57,10 +75,12 @@ class SFTCollator:
     prompt编码含assistant生成前缀，full编码必须以其开头；不满足则拒绝。
     """
 
-    def __init__(self, processor, max_tokens):
+    def __init__(self, processor, max_tokens, *, output_format="html"):
         if type(max_tokens) is not int or max_tokens <= 0:
             raise ValueError("invalid_token_budget")
         self.processor, self.max_tokens = processor, max_tokens
+        output_instruction(output_format)
+        self.output_format = output_format
         self.counts = Counter()
 
     def __call__(self, examples):
@@ -68,7 +88,7 @@ class SFTCollator:
         for inputs, target in examples:
             self.counts["seen"] += 1
             try:
-                messages = build_messages(inputs, target)
+                messages = build_messages(inputs, target, output_format=self.output_format)
                 prefix = self.processor(messages[:-1], add_generation_prompt=True, truncation=False)
                 full = self.processor(messages, add_generation_prompt=False, truncation=False)
                 ids, pids = full["input_ids"], prefix["input_ids"]

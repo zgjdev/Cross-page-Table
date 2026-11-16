@@ -189,6 +189,8 @@ def resume_config(args, input_hashes, model_hashes):
         contract["supervised_logits_only"] = True
     if getattr(args, "loss_chunk_size", 0):
         contract["loss_chunk_size"] = args.loss_chunk_size
+    if getattr(args, "output_format", "html") != "html":
+        contract["output_format"] = args.output_format
     return contract
 
 
@@ -209,6 +211,7 @@ def main():
     parser.add_argument("--gradient-checkpointing", action="store_true")
     parser.add_argument("--supervised-logits-only", action="store_true")
     parser.add_argument("--loss-chunk-size", type=int, default=0)
+    parser.add_argument("--output-format", choices=["html", "grid"], default="html")
     args = parser.parse_args()
     validate(args.group_id, args.steps)
     if not 0 <= args.loss_chunk_size <= 4096 or (
@@ -392,7 +395,9 @@ def main():
                 str(model_path), local_files_only=True, min_pixels=65536, max_pixels=262144
             )
             collator = SFTCollator(
-                QwenProcessorAdapter(processor, root, image_hashes), args.max_tokens
+                QwenProcessorAdapter(processor, root, image_hashes),
+                args.max_tokens,
+                output_format=args.output_format,
             )
             encoded = collator(examples)
             model = Qwen3VLForConditionalGeneration.from_pretrained(

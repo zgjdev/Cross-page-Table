@@ -10,6 +10,17 @@ m = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(m)
 
 
+def test_grid_generation_preserves_raw_and_rejects_bad_grid():
+    from cptla.reconstruction.grid_sequence import html_to_sequence
+
+    raw = html_to_sequence("<table><tr><td>A&amp;B</td></tr></table>")
+    examples = [dict(group_id="g", source_pages=[1], messages=[])]
+    good = m.generate(examples, lambda a, b: (raw, 20, True), 4096, output_format="grid")[0]
+    assert good["raw_output"] == raw and "A&amp;B" in good["html"]
+    bad = m.generate(examples, lambda a, b: ("{}", 2, True), 4096, output_format="grid")[0]
+    assert bad["status"] == "invalid_grid" and bad["raw_output"] == "{}"
+
+
 def test_generation_no_targets_and_source_inheritance():
     examples = [
         {"group_id": "a", "source_pages": [2, 4], "messages": [{"role": "user", "content": []}]}

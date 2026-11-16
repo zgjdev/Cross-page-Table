@@ -12,8 +12,11 @@ from pathlib import Path
 
 from cptla.evaluation.pubtables_v2 import parse_full_document_image_id
 from cptla.reconstruction.data import DATASET_REVISION, TRAIN_RELATIVE_PATH
+from cptla.reconstruction.grid import GridError
+from cptla.reconstruction.grid_sequence import sequence_to_html
 from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
 from cptla.reconstruction.scoring import score_groups
+from cptla.reconstruction.sft_data import output_instruction
 
 
 def safe(root, path):
@@ -36,7 +39,8 @@ def probe_config(training_config, groups, upstreams):
     return dict(training_config, group_id=list(groups), upstream_run=list(upstreams))
 
 
-def generate(examples, backend, budget, *, on_prediction=None):
+def generate(examples, backend, budget, *, on_prediction=None, output_format="html"):
+    output_instruction(output_format)
     groups = [row["group_id"] for row in examples]
     if not 1 <= len(groups) <= 16 or len(set(groups)) != len(groups) or not 1 <= budget <= 32768:
         raise ValueError("invalid group/token scope")
@@ -57,6 +61,15 @@ def generate(examples, backend, budget, *, on_prediction=None):
                 status="truncated" if truncated else "completed",
             )
         )
+        if output_format == "grid":
+            prediction = predictions[-1]
+            prediction.update(raw_output=raw, output_format="grid")
+            try:
+                prediction["html"] = sequence_to_html(raw)
+            except GridError as error:
+                prediction["html"] = ""
+                prediction["status"] = "truncated" if truncated else "invalid_grid"
+                prediction["grid_error"] = str(error)
         if on_prediction is not None:
             on_prediction(predictions[-1])
     return predictions
@@ -110,9 +123,7 @@ def input_examples(root, config, read):
         content = [
             {
                 "type": "text",
-                "text": (
-                    "根据按顺序提供的表格片段图像及局部预测，恢复完整表格。只输出完整 HTML table。"
-                ),
+                "text": output_instruction(config.get("output_format", "html")),
             }
         ]
         pages = []
@@ -322,7 +333,11 @@ def main():
                 )
 
             predictions = generate(
-                examples, backend, args.max_new_tokens, on_prediction=persist_prediction
+                examples,
+                backend,
+                args.max_new_tokens,
+                on_prediction=persist_prediction,
+                output_format=config.get("output_format", "html"),
             )
             write("predictions.json", predictions)
         else:

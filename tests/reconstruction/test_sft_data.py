@@ -38,6 +38,20 @@ def test_target_only_in_assistant_and_mask():
     assert out[0]["pixels"] == "kept"
 
 
+def test_grid_target_isolated_and_canonical():
+    import json
+
+    inputs, target = sample()
+    messages = build_messages(inputs, target, output_format="grid")
+    assert "SECRET" not in str(messages[:-1])
+    payload = json.loads(messages[-1]["content"])
+    assert payload["schema_version"] == "global-grid-v1"
+    assert payload["cells"][0]["text"] == "SECRET"
+    assert "global-grid-v1" in messages[0]["content"][0]["text"]
+    output = SFTCollator(MockProcessor(), 5, output_format="grid")([(inputs, target)])
+    assert output[0]["labels"] == [-100, -100, -100, 40, 41]
+
+
 @pytest.mark.parametrize("split", ["test", "train_confirm", "train_dev", "validation"])
 def test_nonfit_forbidden(split):
     with pytest.raises(ValueError):
