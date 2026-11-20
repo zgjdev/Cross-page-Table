@@ -23,3 +23,11 @@
 下一步：真实预测HTML和视觉特征构造共同结构前缀，核验整表主损失梯度与参数更新、native mRoPE/cache一致性，再做同预算配对实验。人工审计仍pending，不阻塞此技术验证，不自动放行全量训练。
 
 11月20日服务器f9b2889验证：`CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venvs/20261114T095359Z-qwen-env/bin/python -m pytest tests/reconstruction tests/test_structure_memory.py tests/test_prefix_injection.py -q -o addopts= --basetemp artifacts/reconstruction-test-tmp/20261120-grid-prefix --tb=short`，234 passed in 12.20s。包括真实Torch前缀替换、梯度与异常清理；仍非真实Qwen集成验收。
+
+## 2026-11-20 真实Qwen前缀探针首轮失败
+
+代码7e5c498；单组/seed20261116/冻结Qwen BF16/结构hidden64两块64slots+16summary；完整命令、环境、输入与验证引用见 `artifacts/reconstruction-structure-prefix/20261120T080000Z-structure-prefix/`。目录名仅任务标识，实际开始/结束时间以manifest为准。权重与原始/crop/prediction校验复用同ID-validation，未修改旧数据。GPU0启动前检查进程及显存通过。
+
+实际结束UTC 2026-11-20T12:46:55.053816。prompt969tokens+80prefix，cache_position显式传入含前缀长度；原生mRoPE，逐路径清空rope_deltas。固定atol0.05/rtol0.01的单tokencached/full比较失败，最大绝对差0.1875；失败保存在cache-check.json/failure.json，未执行主损失反传，不能宣称真实集成通过。
+
+下一步采用同prompt无结构前缀native对照及FP32精度检查定位原因；不放宽容差，不覆盖失败目录。尚不能把差异归因为BF16或前缀错误。

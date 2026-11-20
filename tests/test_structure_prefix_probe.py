@@ -1,7 +1,22 @@
 import importlib.util
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+
+
+def test_cli_advertises_explicit_model_precision():
+    root = Path(__file__).parents[1]
+    result = subprocess.run(
+        [sys.executable, str(root / "scripts/probe_reconstruction_structure_prefix.py"), "--help"],
+        capture_output=True,
+        text=True,
+        env=os.environ | {"PYTHONPATH": str(root / "src")},
+    )
+    assert result.returncode == 0
+    assert "--dtype {bfloat16,float32}" in result.stdout
 
 
 def probe():

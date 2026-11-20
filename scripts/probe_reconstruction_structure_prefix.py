@@ -54,6 +54,7 @@ def main():
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--max-tokens", type=int, default=8192)
     parser.add_argument("--seed", type=int, default=20261116)
+    parser.add_argument("--dtype", choices=("bfloat16", "float32"), default="bfloat16")
     parser.add_argument("--execute-probe", action="store_true")
     args = parser.parse_args()
     import run_reconstruction_qwen_smoke as smoke
@@ -195,7 +196,10 @@ def main():
             ),
         )
         if args.execute_probe:
-            write("gpu-before.json", smoke.gpu_guard(args.gpu, 20480))
+            write(
+                "gpu-before.json",
+                smoke.gpu_guard(args.gpu, 40960 if args.dtype == "float32" else 20480),
+            )
             os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
             import torch
@@ -240,7 +244,7 @@ def main():
             model = Qwen3VLForConditionalGeneration.from_pretrained(
                 str(model_path),
                 local_files_only=True,
-                dtype=torch.bfloat16,
+                dtype=getattr(torch, args.dtype),
                 attn_implementation="sdpa",
             ).to("cuda")
             model.requires_grad_(False)
@@ -323,6 +327,72 @@ def main():
                 for key, value in batch.items()
                 if key != "labels"
             }
+            # Native control has exactly the same original prompt, no added IDs or hook.
+            # Record both controls even when native BF16 exceeds the fixed tolerance.
+            with torch.no_grad():
+                model.model.rope_deltas = None
+                native_prefill = model(**prompt, use_cache=True, return_dict=True, logits_to_keep=1)
+                native_token = native_prefill.logits[:, -1].argmax(-1, keepdim=True)
+                native_mask = torch.cat(
+                    (prompt["attention_mask"], prompt["attention_mask"].new_ones((1, 1))), dim=1
+                )
+                native_cached = (
+                    model(
+                        input_ids=native_token,
+                        attention_mask=native_mask,
+                        past_key_values=native_prefill.past_key_values,
+                        cache_position=torch.tensor([prompt_length], device="cuda"),
+                        use_cache=True,
+                        return_dict=True,
+                        logits_to_keep=1,
+                    )
+                    .logits[:, -1]
+                    .float()
+                )
+                native_full_prompt = dict(prompt)
+                native_full_prompt["input_ids"] = torch.cat(
+                    (prompt["input_ids"], native_token), dim=1
+                )
+                native_full_prompt["attention_mask"] = native_mask
+                model.model.rope_deltas = None
+                native_full = (
+                    model(**native_full_prompt, use_cache=False, return_dict=True, logits_to_keep=1)
+                    .logits[:, -1]
+                    .float()
+                )
+                native_equal = torch.allclose(native_cached, native_full, atol=0.05, rtol=0.01)
+                write(
+                    "native-cache-check.json",
+                    dict(
+                        passed=native_equal,
+                        atol=0.05,
+                        rtol=0.01,
+                        dtype=args.dtype,
+                        max_abs_difference=float((native_cached - native_full).abs().max()),
+                        top1_equal=bool(
+                            torch.equal(native_cached.argmax(-1), native_full.argmax(-1))
+                        ),
+                        outside_tolerance_count=int(
+                            (
+                                (native_cached - native_full).abs()
+                                > 0.05 + 0.01 * native_full.abs()
+                            ).sum()
+                        ),
+                        compared_logits=native_full.numel(),
+                        next_token_rule="native prefill argmax",
+                        next_token=int(native_token.item()),
+                        prompt_tokens=prompt_length,
+                        prefix_tokens=0,
+                        embedding_hook=False,
+                        eval=True,
+                        target_tokens_used=False,
+                        native_mrope=True,
+                        rope_deltas_reset=True,
+                        explicit_cache_position=prompt_length,
+                        checks=1,
+                    ),
+                )
+                del native_prefill, native_cached, native_full
             prompt = prepend_prefix_inputs(prompt, prefix.shape[1], candidate_ids[0])
             detached_prefix = prefix.detach()
             with torch.no_grad():
@@ -363,9 +433,17 @@ def main():
                     "cache-check.json",
                     dict(
                         passed=equal,
+                        dtype=args.dtype,
                         atol=0.05,
                         rtol=0.01,
                         max_abs_difference=float((cached - full).abs().max()),
+                        top1_equal=bool(torch.equal(cached.argmax(-1), full.argmax(-1))),
+                        outside_tolerance_count=int(
+                            ((cached - full).abs() > 0.05 + 0.01 * full.abs()).sum()
+                        ),
+                        compared_logits=full.numel(),
+                        next_token_rule="prefix prefill argmax",
+                        same_next_token_as_native=bool(torch.equal(token, native_token)),
                         next_token=int(token.item()),
                         prompt_tokens=prompt_length,
                         eval=True,
@@ -375,9 +453,9 @@ def main():
                         checks=1,
                     ),
                 )
-                if not equal:
+                if not equal or not native_equal:
                     raise RuntimeError(
-                        "cached/full next-token logits differ beyond fixed tolerance"
+                        "native or prefix cached/full logits differ beyond fixed tolerance"
                     )
                 del prefill, cached, full
             model.model.rope_deltas = None
