@@ -21,3 +21,5 @@
 独立审查发现超过4300位JSON整数可使生成批次中断；已补回归并将解析ValueError统一为GridError。新回归证明raw保留、失败留在结果列表、后续样本继续。11月20日本地16项grid/生成测试通过；prefix合约本地缺Torch仍跳过，须服务器验证。默认临时目录权限失败后改用项目内新目录测试，没有删除旧目录。
 
 下一步：真实预测HTML和视觉特征构造共同结构前缀，核验整表主损失梯度与参数更新、native mRoPE/cache一致性，再做同预算配对实验。人工审计仍pending，不阻塞此技术验证，不自动放行全量训练。
+
+11月20日服务器f9b2889验证：`CUDA_VISIBLE_DEVICES= PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src .venvs/20261114T095359Z-qwen-env/bin/python -m pytest tests/reconstruction tests/test_structure_memory.py tests/test_prefix_injection.py -q -o addopts= --basetemp artifacts/reconstruction-test-tmp/20261120-grid-prefix --tb=short`，234 passed in 12.20s。包括真实Torch前缀替换、梯度与异常清理；仍非真实Qwen集成验收。
