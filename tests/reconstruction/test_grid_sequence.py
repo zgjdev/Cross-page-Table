@@ -17,6 +17,7 @@ def test_roundtrip_text_span_role():
     [
         '{"x":1,"x":2}',
         '{"x":NaN}',
+        '{"num_rows":' + "1" * 5000 + "}",
         "```json\n{}\n```",
         '{"schema_version":"global-grid-v1","num_rows":1,"num_cols":1,"cells":[]}',
         '{"schema_version":"global-grid-v1","num_rows":true,"num_cols":1,"cells":[]}',

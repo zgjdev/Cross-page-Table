@@ -495,3 +495,5 @@
 2026-11-15 20:32北京时间：302步8训练表网格结构/内容8/8，独立未训练8短表探针运行中；全fit裁剪5322表12300片段联合SHA核验完成，37352文件通过，模型预测仍缺11642片段。详见[全量裁剪核验](experiments/2026-11-15-full-fit-crop-preparation.zh-CN.md)与[Qwen技术记录](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)。未放行全量研究训练，继续自动化入口补齐。
 
 2026-11-15 20:46北京时间：未训练8短表复评合法7/8、结构1/8、内容0/8，与同组规则对照无总体结构计数改善；不能用训练8/8代替泛化。评分绑定训练target SHA修复后新目录复算结果不变。分片复用服务器2组9片段通过，205份后续分片计划保存但未执行。219项服务器测试/Ruff通过，本轮任务均结束，G0/G1/G3与全量就绪仍pending。[Qwen验收与边界](experiments/2026-11-15-qwen-bounded-training-smoke.zh-CN.md)、[全量裁剪](experiments/2026-11-15-full-fit-crop-preparation.zh-CN.md)、[分片复用](experiments/2026-11-15-prepared-shard-reuse.zh-CN.md)。
+
+2026-11-20恢复：核实11月16日直接grid单组训练completed_smoke，2828tokens/1859监督、loss0.07117，参数更新与重载通过；独立共同列槽服务器230测试通过。结构前缀适配器已写，真实Qwen梯度/cache尚待验证，不报告方法收益或全量就绪。修复超长JSON整数中断生成批次，回归保留失败并继续后续样本。[详细记录](experiments/2026-11-16-structure-memory-implementation.zh-CN.md)。

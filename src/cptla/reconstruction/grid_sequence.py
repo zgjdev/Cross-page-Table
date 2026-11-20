@@ -47,7 +47,7 @@ def sequence_to_grid(text):
         raise GridError("invalid grid sequence size/type")
     try:
         payload = json.loads(text, object_pairs_hook=_object, parse_constant=_constant)
-    except (json.JSONDecodeError, RecursionError) as error:
+    except (ValueError, RecursionError) as error:
         raise GridError("invalid grid JSON") from error
     if not isinstance(payload, dict) or set(payload) != {
         "schema_version",

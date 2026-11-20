@@ -32,6 +32,26 @@ def test_generation_no_targets_and_source_inheritance():
     assert len(predictions) == 1
 
 
+def test_overlong_integer_preserves_failure_and_continues():
+    from cptla.reconstruction.grid_sequence import html_to_sequence
+
+    raw = '{"num_rows":' + "1" * 5000 + "}"
+    outputs = iter([raw, html_to_sequence("<table><tr><td>A</td></tr></table>")])
+    saved = []
+    examples = [dict(group_id=str(i), source_pages=[i], messages=[]) for i in range(2)]
+    predictions = m.generate(
+        examples,
+        lambda a, b: (next(outputs), 2000, True),
+        4096,
+        output_format="grid",
+        on_prediction=saved.append,
+    )
+    assert len(predictions) == len(saved) == 2
+    assert predictions[0]["status"] == "invalid_grid"
+    assert predictions[0]["raw_output"] == raw
+    assert predictions[1]["status"] == "completed"
+
+
 def test_truncation_and_limits():
     example = {"group_id": "a", "source_pages": [1], "messages": []}
     prediction = m.generate([example], lambda a, b: ("X", b, False), 4096)[0]
