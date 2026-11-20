@@ -31,3 +31,16 @@
 实际结束UTC 2026-11-20T12:46:55.053816。prompt969tokens+80prefix，cache_position显式传入含前缀长度；原生mRoPE，逐路径清空rope_deltas。固定atol0.05/rtol0.01的单tokencached/full比较失败，最大绝对差0.1875；失败保存在cache-check.json/failure.json，未执行主损失反传，不能宣称真实集成通过。
 
 下一步采用同prompt无结构前缀native对照及FP32精度检查定位原因；不放宽容差，不覆盖失败目录。尚不能把差异归因为BF16或前缀错误。
+
+## 2026-11-20 精度对照与主损失反传完成
+
+两次后续探针代码5a3e9af，配置除dtype外相同，seed20261116，固定原容差atol0.05/rtol0.01，不调整阈值。完整argv、输入/代码SHA、权重验证引用、环境和GPU进程分别保存在以下新目录：
+
+- `artifacts/reconstruction-structure-prefix/20261120T125100Z-prefix-native-bf16/`：原生无前缀maxabs0.40625、33987/151936 logits超容差；结构前缀0.1875、14309/151936超容差。两者top1相同，但allclose均失败，未执行反传。两个条件各用自己的prefill argmax，续接token不同，不以差值大小比较方法优劣。
+- `artifacts/reconstruction-structure-prefix/20261120T125300Z-prefix-native-fp32/`：原生maxabs0.0000793934、前缀0.0000438690，超容差均0，top1均相同。随后单组单步真实grid主损失反传成功，summary completed_probe/exit0，结束UTC 2026-11-20T12:49:50.864327。任务ID不是实际启动时间，实际时间见manifest。
+
+FP32实际结果：input2828tokens+80prefix、1859监督；350视觉tokens附片段位置、60预测单元节点（文本embedding+归一化行列/片段位置）；loss0.108483389，prefix梯度范数1.3618599，slot_queries梯度4.8099976、更新范数0.0063992；Qwen全部冻结且无参数梯度，AdamW weight_decay=0，证明更新来自grid因果CE。峰值分配35552843264bytes，单步2.174秒（不含加载/校验）。结构checkpoint SHA256 `12109474fd7f1ef0442121f47e4fcb9dc9bc97a8a4a8a94616c786e71ce932f5`。
+
+证据解释：相同代码下FP32原生及前缀均通过、BF16二者均失败，支持本例差异与低精度数值路径有关，而非前缀独有的问题；不能证明所有BF16生成都可靠，也不能把top1相同替代严格容差验收。当前通过范围限定FP32单组单token缓存与一步反传。
+
+限制：hidden64/2blocks是缩小接口配置，不是方案默认512/4blocks；无显式2D视觉坐标、无边界关系头和辅助结构标签监督；原生forward会重复编码视觉。结构checkpoint尚未完成集成恢复/完整生成验收。没有配对质量指标，不能宣称共同结构提高准确率、G2/G3通过或全量实验就绪。下一步整合可重载的结构+LoRA训练/生成入口，验证完整序列生成，再用同划分/同预算对比直接grid、结构前缀、等长普通memory与遮蔽跨页证据消融。
