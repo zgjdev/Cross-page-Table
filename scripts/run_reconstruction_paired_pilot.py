@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--seed", type=int, default=20261122)
     parser.add_argument("--max-tokens", type=int, default=16384)
     parser.add_argument("--max-new-tokens", type=int, default=8192)
+    parser.add_argument("--output-format", choices=("grid", "html"), default="grid")
     parser.add_argument("--gpu", type=int, default=0)
     args = parser.parse_args()
     if not re.fullmatch(r"\d{8}T\d{6}Z-[a-zA-Z0-9_-]+", args.run):
@@ -127,7 +128,7 @@ def main():
                 inputs=args.inputs,
                 group_id=heldout,
                 upstream_run=args.upstream_run,
-                output_format="grid",
+                output_format=args.output_format,
             ),
             read,
         )
@@ -176,7 +177,7 @@ def main():
             model_path, local_files_only=True, min_pixels=65536, max_pixels=262144
         )
         adapter = QwenProcessorAdapter(processor, root, images)
-        enc = SFTCollator(adapter, args.max_tokens, output_format="grid")(examples)
+        enc = SFTCollator(adapter, args.max_tokens, output_format=args.output_format)(examples)
         base = Qwen3VLForConditionalGeneration.from_pretrained(
             model_path, dtype=torch.float32, attn_implementation="sdpa", local_files_only=True
         ).cuda()
@@ -278,7 +279,9 @@ def main():
                         bool(tokens and tokens[-1] in (eos if isinstance(eos, list) else [eos])),
                     )
 
-                pred = review.generate([row], backend, args.max_new_tokens, output_format="grid")[0]
+                pred = review.generate(
+                    [row], backend, args.max_new_tokens, output_format=args.output_format
+                )[0]
                 predictions.append(pred)
                 write(f"prediction-{idx + 1:03d}.json", pred)
         write("predictions.json", predictions)
