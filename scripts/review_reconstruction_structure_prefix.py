@@ -49,7 +49,6 @@ def main():
         prepend_prefix_inputs,
     )
     from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
-    from cptla.reconstruction.scoring import score_groups
     from cptla.reconstruction.structure_features import structure_evidence
     from cptla.reconstruction.structure_memory import StructureMemory
 
@@ -165,16 +164,21 @@ def main():
 
             outputs[mode] = generate(examples, backend, 4096, output_format="grid")
             write(mode + "-prediction.json", outputs[mode])
+    write("scores.json", paired_scores(read(safe(root, config["targets"])), config, outputs))
+
+
+def paired_scores(raw, config, outputs):
+    from cptla.reconstruction.scoring import score_groups
+
     targets = [
         row
-        for line in read(safe(root, config["targets"])).decode("utf-8-sig").splitlines()
+        for line in raw.decode("utf-8-sig").split("\n")
         if line.strip() and (row := json.loads(line))["group_id"] in config["group_id"]
     ]
     if len(targets) != 1:
         raise ValueError("target coverage mismatch")
-    write("scores.json", {mode: score_groups(targets, rows) for mode, rows in outputs.items()})
+    return {mode: score_groups(targets, rows) for mode, rows in outputs.items()}
 
 
 if __name__ == "__main__":
     main()
-
