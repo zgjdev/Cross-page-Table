@@ -499,3 +499,5 @@
 2026-11-20恢复：核实11月16日直接grid单组训练completed_smoke，2828tokens/1859监督、loss0.07117，参数更新与重载通过；独立共同列槽服务器230测试通过。结构前缀适配器已写，真实Qwen梯度/cache尚待验证，不报告方法收益或全量就绪。修复超长JSON整数中断生成批次，回归保留失败并继续后续样本。[详细记录](experiments/2026-11-16-structure-memory-implementation.zh-CN.md)。
 
 2026-11-20核心接口里程碑：服务器234测试通过；真实FP32结构前缀cache maxabs0.000043869、grid主损失到slots梯度/参数更新通过（5a3e9af，单组单步）。BF16原生与前缀均超固定容差，保留失败，不宽松判过。全部探针已结束，无新方法质量指标。下一步集成保存恢复/完整生成及公平配对；G0/G1/G3和全量训练仍未放行。[完整证据与边界](experiments/2026-11-16-structure-memory-implementation.zh-CN.md)。
+
+2026-11-22：单步结构检查点重载后与冻结 Qwen 完整生成均达 EOS，两臂均非法，复评后各 0/1。16 步双臂 LoRA 小试已启动，逐表结果待验收。新增以共同列结构及跨页证据为主张的论文工作稿。[试验记录](experiments/2026-11-22-paired-reconstruction-pilot.zh-CN.md)。
