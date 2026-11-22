@@ -65,7 +65,7 @@ def main():
         return data
 
     def rows(path):
-        return [json.loads(line) for line in read(path).decode("utf-8-sig").splitlines() if line]
+        return [json.loads(line) for line in read(path).decode("utf-8-sig").split("\n") if line]
 
     try:
         train = json.loads(read(args.train_selection))["groups"]
@@ -96,11 +96,15 @@ def main():
             ),
         )
         model_path = smoke.safe(root, args.model)
-        official = json.loads(read("configs/models/qwen3-vl-2b-instruct-2026-11-14.json"))
+        official = json.loads(read("configs/models/qwen3-vl-2b-instruct-2026-11-14.json"))[
+            "models"
+        ][0]
         pinned = json.loads(read(model_path / "download-manifest.json"))
         if (
             pinned["revision"] != "89644892e4d85e24eaac8bacfd4f463576704203"
             or pinned["status"] != "complete"
+            or pinned["revision"] != official["revision"]
+            or pinned["repo"] != official["repo"]
         ):
             raise ValueError("unverified model")
         files = {r["path"]: r for r in official["files"]}
@@ -293,4 +297,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
