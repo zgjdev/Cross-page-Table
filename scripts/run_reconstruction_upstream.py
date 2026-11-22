@@ -278,6 +278,8 @@ def prepare(
             write(output / "reuse-manifest.json", provenance)
         if sha(inputs) != input_sha:
             raise ValueError("input manifest changed during preparation")
+        if document_overlay is not None and sha(document_overlay) != overlay_sha:
+            raise ValueError("document overlay changed during preparation")
         write(output / "prepared.json", dict(status="prepared", fragments=records))
         return output, records
     except (Exception, KeyboardInterrupt) as exc:
