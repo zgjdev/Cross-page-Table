@@ -33,3 +33,5 @@ CPU 使用固定 Qwen tokenizer（不计特殊 token）复核同一批 16 张真
 上一步唯一结构退化案例为 PMC11277303-table-0。真值为 22 行 6 列，直接拼接结构完全匹配，启发式输出少 2 行。该例适合作为未来基于图像的边界误删核验例，当前未进行图像人工复核。
 
 20:34 北京时间启动训练后 CPU 逐表分析，PID 13695，对照两臂成功退出收据后读取两臂完整输出。新目录 `artifacts/reconstruction-diagnostics/20261122T123435Z-paired16-analysis/`，manifest 记录依赖及 PID，成功后生成 command.json、report.json 与 exit.json，失败记录失败状态。无 GPU 使用，最长等待三小时。当前 GPU 作业继续串行运行。首张评估表自训练末步至落盘约 323 秒，近似 12 生成 tokens/s。总用时取决于后续各表的实际生成长度。
+
+增加可选 HTML 输出条件（commit 91dcace），相同入口同时传给训练目标、推理提示及生成输出处理，保持默认网格。CLI 与 Ruff 已验证。该变更已推 GitHub 功能分支，等待当前配对结束再同步服务器，确保两臂读到相同训练代码与 commit。
