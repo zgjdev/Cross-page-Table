@@ -99,6 +99,33 @@ def test_failure_preserves_raw(tmp_path):
     assert json.loads((output / "summary.json").read_text())["status"] == "failed"
 
 
+def test_train_dev_requires_unobserved_overlay(tmp_path):
+    inputs, row = fixture(tmp_path)
+    row.update(split="train_dev", cluster_id="PMC1")
+    inputs.write_text(json.dumps(row), encoding="utf-8")
+    overlay = tmp_path / "overlay.jsonl"
+    overlay_row = dict(
+        document_id="PMC1", cluster_id="PMC1", effective_split="train_dev", observed_cluster=True
+    )
+    overlay.write_text(json.dumps(overlay_row), encoding="utf-8")
+    groups = [row["group_id"]]
+    with pytest.raises(ValueError, match="overlay"):
+        runner.prepare(tmp_path, inputs, "no-overlay", groups, split="train_dev")
+    with pytest.raises(ValueError, match="overlay"):
+        runner.prepare(
+            tmp_path, inputs, "seen", groups, split="train_dev", document_overlay=overlay
+        )
+    overlay_row["observed_cluster"] = False
+    overlay.write_text(json.dumps(overlay_row), encoding="utf-8")
+    output, records = runner.prepare(
+        tmp_path, inputs, "allowed", groups, split="train_dev", document_overlay=overlay
+    )
+    assert len(records) == 1
+    manifest = json.loads((output / "run-manifest.json").read_text())
+    assert manifest["split"] == "train_dev"
+    assert manifest["document_overlay_sha256"] == runner.sha(overlay)
+
+
 @pytest.mark.parametrize(
     "field,value",
     [

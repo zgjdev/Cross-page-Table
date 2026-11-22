@@ -1,4 +1,4 @@
-"""仅从 R0 train_fit 输入生成保留原方向的裁剪与 Paddle 局部预测。"""
+"""从 R0 的 train_fit 或显式隔离的 train_dev 生成 Paddle 局部预测。"""
 
 from __future__ import annotations
 
@@ -53,13 +53,19 @@ def failure(output, exc):
     )
 
 
-def prepare(root, inputs, run, groups, reuse_prepared_run=None):
+def prepare(
+    root, inputs, run, groups, reuse_prepared_run=None, *, split="train_fit", document_overlay=None
+):
     root = root.resolve()
     inputs = inside(root, inputs)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", run):
         raise ValueError("unsafe run identity")
     if not groups or len(groups) != len(set(groups)):
         raise ValueError("explicit unique group IDs required")
+    if split not in {"train_fit", "train_dev"}:
+        raise ValueError("only train_fit and train_dev are supported")
+    if split == "train_dev" and document_overlay is None:
+        raise ValueError("train_dev requires a document overlay")
     output = inside(root, Path("artifacts/reconstruction-upstream") / run)
     output.mkdir(parents=True, exist_ok=False)
     try:
@@ -71,11 +77,32 @@ def prepare(root, inputs, run, groups, reuse_prepared_run=None):
             if row["group_id"] in by_id:
                 raise ValueError("duplicate input group")
             by_id[row["group_id"]] = row
+        overlay_sha = None
+        if document_overlay is not None:
+            document_overlay = inside(root, document_overlay)
+            raw_overlay = document_overlay.read_bytes()
+            overlay_sha = hashlib.sha256(raw_overlay).hexdigest()
+            entries = [json.loads(line) for line in raw_overlay.split(b"\n") if line.strip()]
+            by_document = {row["document_id"]: row for row in entries}
+            if len(entries) != len(by_document):
+                raise ValueError("duplicate document overlay entries")
+            for group in groups:
+                source_row = by_id[group]
+                entry = by_document.get(source_row["document_id"], {})
+                if (
+                    entry.get("effective_split") != split
+                    or entry.get("cluster_id") != source_row["cluster_id"]
+                    or (split == "train_dev" and entry.get("observed_cluster") is not False)
+                ):
+                    raise ValueError("group is excluded by the document overlay")
         write(
             output / "run-manifest.json",
             dict(
                 started_utc=datetime.now(UTC).isoformat(),
                 input_track="image-only",
+                split=split,
+                document_overlay=str(document_overlay) if document_overlay is not None else None,
+                document_overlay_sha256=overlay_sha,
                 protocol=PROTOCOL,
                 dataset_revision=DATASET_REVISION,
                 inputs=str(inputs),
@@ -139,7 +166,7 @@ def prepare(root, inputs, run, groups, reuse_prepared_run=None):
             row = by_id[group]
             for key, expected in [
                 ("source_split", "train"),
-                ("split", "train_fit"),
+                ("split", split),
                 ("dataset_revision", DATASET_REVISION),
                 ("protocol", PROTOCOL),
             ]:
@@ -321,9 +348,19 @@ def main():
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--reuse-prepared-run", type=Path)
+    parser.add_argument("--split", choices=("train_fit", "train_dev"), default="train_fit")
+    parser.add_argument("--document-overlay", type=Path)
     args = parser.parse_args()
     root = args.project_root.resolve()
-    output, records = prepare(root, args.inputs, args.run, args.group_id, args.reuse_prepared_run)
+    output, records = prepare(
+        root,
+        args.inputs,
+        args.run,
+        args.group_id,
+        args.reuse_prepared_run,
+        split=args.split,
+        document_overlay=args.document_overlay,
+    )
     if args.prepare_only:
         return
     try:
