@@ -26,3 +26,29 @@
 ## 全量素材覆盖复核
 
 按实际 manifest 和已知污染隔离层计算，fit 为 5,322 张/12,300 片段，dev 为 1,151 张/2,674 片段，confirm 为 1,132 张/2,605 片段。隔离表为 PMC10748512-table-2（4 片段）。已有 200 表/658 片段与 205 个剩余分片计划严格互斥，合并后的 group_id 集合恰等于有效 fit，确认仍差 5,122 张/11,642 片段的上游预测。仅为覆盖核对，不代表近重复审核、派生标签或正式训练已放行。
+
+8 张因加入合并而首次达到结构全等的表已逐路径复核。其结构可行路径数恰好等于只要求总行数正确时的路径数。没有路径能让所有合并行文本与真值一致，此结果支持增补文本及视觉证据约束。详见 [边界合并候选审计](2026-11-23-boundary-edit-oracle.zh-CN.md)。
+
+## 固定候选的边界动作学习小试
+
+2026-11-23 00:55（北京时间）在 CPU 完成 `20261122T165509Z-boundary-edit-200`。代码 ba2899f，seed 20261123，项目 Qwen 环境中的 NumPy。由既有 200 张 train_fit 按簇分出 151 张内部训练表、49 张内部评估表。45 个训练组有满足跨页保持文本匹配阈值的弱标签，参与优化的可选边界中 48 个删行、4 个保留。弱标签来自离线搜索，没有人工确认。固定 Paddle 预测为唯一模型输入。格式为相同列数下保留或在合法边界删除 1–3 行，拒绝删除整个片段与切断跨行单元格。局部线性打分与增加跨片段特征的线性打分使用同候选。无 GPU、无下载。
+
+| 49 表内部评估 | 可评分 | 结构完全匹配 | 内容完全匹配 |
+| --- | ---: | ---: | ---: |
+| 直接拼接 | 38/49 | 4/49 | 0/49 |
+| 历史规则 | 38/49 | 17/49 | 0/49 |
+| 同候选最大删除长度，无训练 | 38/49 | 15/49 | 0/49 |
+| 局部打分 | 38/49 | 18/49 | 0/49 |
+| 多页打分 | 38/49 | 18/49 | 0/49 |
+
+多页与局部逐表动作无差异。相比历史规则的唯一结构增益 PMC12072187-table-1，来自页 12 表头有局部 OCR 错字，学习臂删一行，精确匹配规则保留。内部评估弱标签边界 17/17 都要求删行，命中率无法说明保留动作有效。相同候选最大删行对照保存于 `artifacts/reconstruction-diagnostics/20261122T165840Z-fixed-fuzzy-boundary-control/report.json`。主 run 的 manifest、split、弱标签、weights、逐表结果在 `artifacts/reconstruction-diagnostics/20261122T165509Z-boundary-edit-200/`。模型权重 SHA256 7cf77b72e7898d36215ba1d6996aaa8e07b72c5311ce70abaffae24c7821acfc。此轮未观察到多页机制信号。
+
+## 排队验证
+
+独立 16 表的 45 个片段完成后自动评分 B0 与历史规则。队列 `20261122T165708Z-fit-shard0`，父 PID 3978203，按顺序执行 CPU 评分和第 0 个 fit 分片。分片 25 表、57 片段，为现有裁剪复用与验证烟测，预期完成身份和预测 SHA 核验。脚本支持失败归档和恢复，当前未放行剩余 204 片。另一个 CPU 队列 `20261122T170039Z-boundary-dev16`（PID 4030966）在两个开发基线成功后自动读取冻结权重并评估五臂。权重与代码兼容校验、文档簇隔离、预测后才打开真值，按两片段和多片段各 8 张分层。命令与退出码分别存同名 launcher，开发评分输出为 `artifacts/reconstruction-diagnostics/20261122T170039Z-boundary-dev16/`。
+
+## 列冲突的可修复性
+
+30 张直接拼接失败表另做保序补空列审计。即使使用真值列宽，13 张已有片段比真值更宽，单纯插空列已无法处理。允许删去完全相同的开头行后，只有 6 张可达到正确尺寸，全部 30 张仍无结构或内容全等。候选包括不切已有 colspan，不改文本。下一轮应优先判断局部视觉是否支持重新识别错列或缺行，同时保持其他片段及行不变。[完整列诊断](2026-11-23-monotone-column-oracle.zh-CN.md)
+
+服务器相关测试通过 247 项。命令 `CUDA_VISIBLE_DEVICES= PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 .venvs/20261114T095359Z-qwen-env/bin/python -m pytest tests/reconstruction tests/test_structure_memory.py tests/test_prefix_injection.py tests/test_structure_prefix_probe.py -q -o addopts= --basetemp artifacts/reconstruction-test-tmp/20261123-boundary-dev-and-upstream --tb=short`，代码 46d808d。
