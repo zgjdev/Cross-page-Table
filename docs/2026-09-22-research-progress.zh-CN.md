@@ -503,3 +503,5 @@
 2026-11-22：单步结构检查点重载后与冻结 Qwen 完整生成均达 EOS，两臂均非法，复评后各 0/1。16 步双臂 LoRA 小试已启动，逐表结果待验收。新增以共同列结构及跨页证据为主张的论文工作稿。[试验记录](experiments/2026-11-22-paired-reconstruction-pilot.zh-CN.md)。
 
 2026-11-22 20:35：直接臂 16 步结束，首张评估表生成 EOS 但 JSON 的 LaTeX 转义非法。重算 200 表历史启发式，47 张结构改善均发生在前缀删行组，另有 1 张退化。双臂运行持续，已串接 CPU 逐表分析。[诊断与证据](experiments/2026-11-22-paired-reconstruction-pilot.zh-CN.md)。
+
+2026-11-22 23:36：网格配对完成，直接臂合法/结构正确 1/8，共同结构臂 0/8，内容均 0/8。启动同样本同训练预算的 HTML 两臂复测，串行生成及自动逐表评分。[结果与新任务](experiments/2026-11-22-paired-reconstruction-pilot.zh-CN.md)。
