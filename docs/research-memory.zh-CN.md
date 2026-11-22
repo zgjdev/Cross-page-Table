@@ -4,6 +4,8 @@
 
 - 结构检查点已重载并实际生成到 EOS。单步结构与直接冻结 Qwen 的同表预测均非法，完整结构/内容各 0/1。离线评分修复 JSONL Unicode 行分隔处理后核验完成。
 - 双臂 8 表训练、8 独立文档表评估已启动，`20261122T122003Z-paired16`，父 PID 3986635，各 16 步，FP32。首轮两臂统一 8,192 新 token，38/38 片段预测可解析，现有 document_id/cluster_id 交集空。开发诊断，待生成和配对评分。
+- 直接臂 16 步完成，正在生成。首表因 LaTeX 反斜杠转义失败。CPU 后续分析 PID 13695，结果目录 `artifacts/reconstruction-diagnostics/20261122T123435Z-paired16-analysis`。
+- 200 表复评中，47 张结构改善全部发生在前缀删行组，另有 1 张结构退化。可评分表没有触发列插入。该证据促使从单看列对齐改为检验跨页边界行决策。
 - [试验证据与恢复入口](experiments/2026-11-22-paired-reconstruction-pilot.zh-CN.md) · [论文工作稿](reports/2026-11-22-cross-page-reconstruction-manuscript.zh-CN.md)。
 
 ## 前次恢复入口（2026-11-20，北京时间）

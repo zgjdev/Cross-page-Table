@@ -78,6 +78,7 @@ def main():
     raw = args.targets.read_bytes()
     target_sha = hashlib.sha256(raw).hexdigest()
     manifests = {}
+    input_hashes = {}
     predictions = {}
     digests = {}
     for arm, folder in (("direct", args.direct), ("structure", args.structure)):
@@ -86,6 +87,7 @@ def main():
         if config["arm"] != arm or read(folder / "summary.json")["status"] != "completed":
             raise ValueError(f"{arm}: incomplete or wrong arm")
         hashes = read(folder / "input-hashes.json")
+        input_hashes[arm] = hashes
         root = Path(config["project_root"]).resolve()
         key = (root / config["targets"]).resolve().relative_to(root).as_posix()
         if hashes.get(key) != target_sha:
@@ -117,6 +119,8 @@ def main():
         digests[arm] = hashlib.sha256(payload).hexdigest()
     if manifests["direct"] != manifests["structure"]:
         raise ValueError("pilot configurations or document splits differ")
+    if input_hashes["direct"] != input_hashes["structure"]:
+        raise ValueError("pilot inputs differ by SHA256")
     heldout = manifests["direct"]["heldout"]
     rows = [
         r
