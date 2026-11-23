@@ -75,7 +75,9 @@ def generate(examples, backend, budget, *, on_prediction=None, output_format="ht
     return predictions
 
 
-def input_examples(root, config, read):
+def input_examples(root, config, read, *, expected_split="train_fit"):
+    if expected_split not in {"train_fit", "train_dev"}:
+        raise ValueError("unsupported inference split")
     groups = config["group_id"]
     if not 1 <= len(groups) <= 16 or len(set(groups)) != len(groups):
         raise ValueError("invalid smoke groups")
@@ -109,7 +111,7 @@ def input_examples(root, config, read):
     for group in groups:
         original = originals[group]
         if (
-            original.get("split") != "train_fit"
+            original.get("split") != expected_split
             or original.get("source_split") != "train"
             or original.get("dataset_revision") != DATASET_REVISION
         ):
