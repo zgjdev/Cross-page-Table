@@ -1,9 +1,9 @@
 """冻结视觉和片段预测节点的证据提取。"""
 
-from cptla.reconstruction.grid import html_to_grid
+from cptla.reconstruction.grid import GridError, html_to_grid
 
 
-def prediction_nodes(fragments):
+def prediction_nodes(fragments, *, tolerate_invalid_html=False):
     """Only predicted cell text/positions; deliberately no target parameter."""
     if not fragments:
         raise ValueError("empty predicted fragments")
@@ -11,7 +11,13 @@ def prediction_nodes(fragments):
     for index, fragment in enumerate(fragments):
         if set(fragment) != {"image_path", "prediction_html"}:
             raise ValueError("unexpected feature input fields")
-        grid = html_to_grid(fragment["prediction_html"])  # No repair or GT fallback.
+        try:
+            grid = html_to_grid(fragment["prediction_html"])
+        except GridError:
+            if not tolerate_invalid_html:
+                raise
+            # The corresponding image remains in the visual evidence. Do not use GT.
+            continue
         for cell in grid.cells:
             nodes.append(
                 (
@@ -28,10 +34,10 @@ def prediction_nodes(fragments):
     return nodes
 
 
-def structure_evidence(model, processor, batch, fragments):
+def structure_evidence(model, processor, batch, fragments, *, tolerate_invalid_html=False):
     import torch
 
-    records = prediction_nodes(fragments)
+    records = prediction_nodes(fragments, tolerate_invalid_html=tolerate_invalid_html)
     embedding = model.get_input_embeddings()
     dim = embedding.weight.shape[1]
     with torch.no_grad():
@@ -71,5 +77,9 @@ def structure_evidence(model, processor, batch, fragments):
                 else torch.zeros(dim, device="cuda")
             )
             node_values.append(torch.cat((mean, mean.new_tensor(positions))))
-        nodes = torch.stack(node_values).unsqueeze(0).detach()
+        nodes = (
+            torch.stack(node_values).unsqueeze(0).detach()
+            if node_values
+            else visual.new_empty((1, 0, dim + 5))
+        )
     return visual, nodes

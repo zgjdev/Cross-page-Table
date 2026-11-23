@@ -8,17 +8,66 @@ import random
 import re
 import subprocess
 import sys
+import time
 from contextlib import nullcontext
 from pathlib import Path
 
 
-def document_split(inputs, train, heldout):
-    if len(set(train)) != 8 or len(train) != 8 or len(set(heldout)) != 8 or len(heldout) != 8:
+def document_split(inputs, train, heldout, *, overlay=None):
+    if overlay is None and (len(train) != 8 or len(heldout) != 8):
         raise ValueError("expected eight unique train and eight unique heldout groups")
-    docs = {row["group_id"]: row["document_id"] for row in inputs}
+    if (
+        not train
+        or not heldout
+        or len(set(train)) != len(train)
+        or len(set(heldout)) != len(heldout)
+    ):
+        raise ValueError("expected unique groups in both splits")
+    by_id = {row["group_id"]: row for row in inputs}
+    if len(by_id) != len(inputs):
+        raise ValueError("duplicate input group")
+    docs = {g: by_id[g]["document_id"] for g in train + heldout}
     if set(train) & set(heldout) or {docs[g] for g in train} & {docs[g] for g in heldout}:
         raise ValueError("train and heldout overlap by document")
+    if overlay is not None:
+        by_doc = {r["document_id"]: r for r in overlay}
+        if len(by_doc) != len(overlay):
+            raise ValueError("duplicate document overlay")
+        if {by_id[g]["cluster_id"] for g in train} & {by_id[g]["cluster_id"] for g in heldout}:
+            raise ValueError("train and heldout overlap by cluster")
+        for groups, split in ((train, "train_fit"), (heldout, "train_dev")):
+            for g in groups:
+                row, proof = by_id[g], by_doc.get(docs[g], {})
+                if (
+                    row["split"] != split
+                    or proof.get("effective_split") != split
+                    or proof.get("cluster_id") != row["cluster_id"]
+                    or (split == "train_dev" and proof.get("observed_cluster") is not False)
+                ):
+                    raise ValueError(f"group is excluded by document overlay: {g}")
     return {g: docs[g] for g in train + heldout}
+
+
+class TrainableState:
+    """Checkpoint only trainable tensors; the immutable backbone is hashed separately."""
+
+    def __init__(self, tensors):
+        self.tensors = dict(tensors)
+
+    def state_dict(self):
+        return {name: value.detach().cpu() for name, value in self.tensors.items()}
+
+    def load_state_dict(self, state, strict=True):
+        import torch
+
+        if strict and self.tensors.keys() != state.keys():
+            raise ValueError("trainable checkpoint parameter names changed")
+        with torch.no_grad():
+            for name, value in self.tensors.items():
+                saved = state[name]
+                if saved.shape != value.shape or saved.dtype != value.dtype:
+                    raise ValueError(f"trainable checkpoint tensor changed: {name}")
+                value.copy_(saved)
 
 
 def main():
@@ -41,11 +90,25 @@ def main():
     parser.add_argument("--max-new-tokens", type=int, default=8192)
     parser.add_argument("--output-format", choices=("grid", "html"), default="grid")
     parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--train-only", action="store_true")
+    parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--epochs", type=int, default=2)
+    parser.add_argument("--checkpoint-every", type=int, default=25)
+    parser.add_argument("--resume-state")
+    parser.add_argument("--document-overlay")
     args = parser.parse_args()
     if not re.fullmatch(r"\d{8}T\d{6}Z-[a-zA-Z0-9_-]+", args.run):
         raise ValueError("timestamped run required")
-    if not 1 <= args.steps <= 50 or not 1 <= args.max_new_tokens <= 8192:
+    if (
+        not 1 <= args.steps <= (500 if args.train_only else 50)
+        or not 1 <= args.max_new_tokens <= 8192
+    ):
         raise ValueError("pilot exceeds bounded budget")
+    if args.train_only:
+        if args.epochs != 2 or not 1 <= args.checkpoint_every <= 50 or not args.document_overlay:
+            raise ValueError("scaled pilot requires a document overlay and two epochs")
+    elif args.prepare_only or args.resume_state or args.document_overlay:
+        raise ValueError("prepare, resume and overlay options require --train-only")
     root = args.project_root.resolve()
     out = smoke.safe(root, "artifacts/reconstruction-paired-pilot/" + args.run)
     out.mkdir(parents=True, exist_ok=False)
@@ -71,7 +134,13 @@ def main():
     try:
         train = json.loads(read(args.train_selection))["groups"]
         heldout = json.loads(read(args.heldout_selection))["groups"]
-        docs = document_split(rows(args.inputs), train, heldout)
+        overlay = rows(args.document_overlay) if args.train_only else None
+        docs = document_split(rows(args.inputs), train, heldout, overlay=overlay)
+        expected_steps = len(train) * args.epochs if args.train_only else args.steps
+        if args.train_only and (
+            len(train) > 250 or len(heldout) != 16 or args.steps > expected_steps
+        ):
+            raise ValueError("scaled pilot requires at most 250 fit and exactly 16 dev tables")
         write(
             "manifest.json",
             dict(
@@ -87,13 +156,20 @@ def main():
                 documents=docs,
                 track="image-only",
                 dtype="float32",
-                split="train_fit historical short-table exploratory pilot",
+                split=(
+                    "train_fit / train_dev fixed whole-table pilot"
+                    if args.train_only
+                    else "train_fit historical short-table exploratory pilot"
+                ),
                 lora_rank=16,
                 lora_alpha=32,
                 dropout=0.05,
                 lr=1e-4,
                 weight_decay=0.0,
                 seed=args.seed,
+                epochs=args.epochs if args.train_only else None,
+                microbatch=1,
+                tolerate_invalid_html=args.train_only,
             ),
         )
         model_path = smoke.safe(root, args.model)
@@ -111,6 +187,7 @@ def main():
         files = {r["path"]: r for r in official["files"]}
         if set(files) != {r["file"] for r in pinned["verified"]}:
             raise ValueError("incomplete model")
+        model_hashes = {}
         for rec in pinned["verified"]:
             path = smoke.safe(model_path, rec["file"])
             with path.open("rb") as f:
@@ -119,23 +196,27 @@ def main():
                     or path.stat().st_size != files[rec["file"]]["size"]
                 ):
                     raise ValueError("model SHA/size mismatch")
+            model_hashes[path.relative_to(root).as_posix()] = rec["sha256"]
+        write("model-hashes.json", model_hashes)
         examples, images = smoke.load_examples(
             root, args.inputs, args.targets, args.upstream_run, train, read
         )
-        evaluation, extra_images = review.input_examples(
-            root,
-            dict(
-                inputs=args.inputs,
-                group_id=heldout,
-                upstream_run=args.upstream_run,
-                output_format=args.output_format,
-            ),
-            read,
-        )
-        images.update(extra_images)
+        if not args.train_only:
+            evaluation, extra_images = review.input_examples(
+                root,
+                dict(
+                    inputs=args.inputs,
+                    group_id=heldout,
+                    upstream_run=args.upstream_run,
+                    output_format=args.output_format,
+                ),
+                read,
+            )
+            images.update(extra_images)
         write("input-hashes.json", hashes)
-        write("gpu-before.json", smoke.gpu_guard(args.gpu, 40960))
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+        if not args.prepare_only:
+            write("gpu-before.json", smoke.gpu_guard(args.gpu, 40960))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "" if args.prepare_only else str(args.gpu)
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
         for var, directory in [
             ("HF_HOME", "hf-home"),
@@ -150,6 +231,7 @@ def main():
         from peft import LoraConfig, get_peft_model
         from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
 
+        from cptla.reconstruction.checkpoint_state import load_state, save_state
         from cptla.reconstruction.chunked_loss import chunked_causal_loss
         from cptla.reconstruction.prefix_injection import (
             inject_prefix_embeddings,
@@ -158,7 +240,7 @@ def main():
         from cptla.reconstruction.qwen_processor import QwenProcessorAdapter
         from cptla.reconstruction.scoring import score_groups
         from cptla.reconstruction.sft_data import SFTCollator
-        from cptla.reconstruction.structure_features import structure_evidence
+        from cptla.reconstruction.structure_features import prediction_nodes, structure_evidence
         from cptla.reconstruction.structure_memory import StructureMemory
 
         write(
@@ -167,7 +249,7 @@ def main():
                 torch=torch.__version__,
                 transformers=transformers.__version__,
                 peft=peft.__version__,
-                gpu=torch.cuda.get_device_name(),
+                gpu=None if args.prepare_only else torch.cuda.get_device_name(),
             ),
         )
         torch.manual_seed(args.seed)
@@ -177,7 +259,25 @@ def main():
             model_path, local_files_only=True, min_pixels=65536, max_pixels=262144
         )
         adapter = QwenProcessorAdapter(processor, root, images)
-        enc = SFTCollator(adapter, args.max_tokens, output_format=args.output_format)(examples)
+        collate = SFTCollator(adapter, args.max_tokens, output_format=args.output_format)
+        if args.prepare_only:
+            lengths = []
+            for model_input, target in examples:
+                item = collate([(model_input, target)])[0]
+                lengths.append(
+                    dict(
+                        group_id=model_input["group_id"],
+                        tokens=len(item["input_ids"]),
+                        supervised_tokens=sum(label != -100 for label in item["labels"]),
+                        valid_structure_nodes=len(
+                            prediction_nodes(model_input["fragments"], tolerate_invalid_html=True)
+                        ),
+                    )
+                )
+            write("lengths.json", lengths)
+            write("summary.json", dict(status="prepared_only", groups=len(lengths)))
+            return
+        enc = None if args.train_only else collate(examples)
         base = Qwen3VLForConditionalGeneration.from_pretrained(
             model_path, dtype=torch.float32, attn_implementation="sdpa", local_files_only=True
         ).cuda()
@@ -201,9 +301,10 @@ def main():
             if args.arm == "structure"
             else None
         )
-        params = [p for p in wrapped.parameters() if p.requires_grad]
+        trainables = {name: p for name, p in wrapped.named_parameters() if p.requires_grad}
         if memory is not None:
-            params.extend(memory.parameters())
+            trainables.update({f"structure.{name}": p for name, p in memory.named_parameters()})
+        params = list(trainables.values())
         optimizer = torch.optim.AdamW(params, lr=1e-4, weight_decay=0.0)
         placeholder = processor.tokenizer.encode("x", add_special_tokens=False)
         if len(placeholder) != 1 or placeholder[0] in processor.tokenizer.all_special_ids:
@@ -217,7 +318,9 @@ def main():
             }
             if memory is None:
                 return batch, nullcontext()
-            v, n = structure_evidence(base, processor, batch, fragments)
+            v, n = structure_evidence(
+                base, processor, batch, fragments, tolerate_invalid_html=args.train_only
+            )
             prefix = memory(
                 v,
                 n,
@@ -231,26 +334,131 @@ def main():
 
         wrapped.train()
         torch.manual_seed(args.seed)
-        for step in range(args.steps):
+        start_step = 0
+        if args.train_only:
+            contract = dict(
+                schema="paired-whole-table-fp32-v1",
+                arm=args.arm,
+                epochs=args.epochs,
+                output=args.output_format,
+                max_tokens=args.max_tokens,
+                seed=args.seed,
+                order=train,
+                input_hashes=hashes,
+                model_hashes=model_hashes,
+                implementation_sha256={
+                    name: hashlib.sha256(smoke.safe(root, name).read_bytes()).hexdigest()
+                    for name in (
+                        "scripts/run_reconstruction_paired_pilot.py",
+                        "scripts/run_reconstruction_qwen_smoke.py",
+                        "src/cptla/reconstruction/checkpoint_state.py",
+                        "src/cptla/reconstruction/chunked_loss.py",
+                        "src/cptla/reconstruction/prefix_injection.py",
+                        "src/cptla/reconstruction/qwen_processor.py",
+                        "src/cptla/reconstruction/sft_data.py",
+                        "src/cptla/reconstruction/structure_features.py",
+                        "src/cptla/reconstruction/structure_memory.py",
+                    )
+                },
+            )
+            state = TrainableState(trainables)
+            if args.resume_state:
+                resume = smoke.safe(root, args.resume_state)
+                if not resume.is_relative_to(out.parent) or resume.parent.name != "training-state":
+                    raise ValueError("resume requires a project paired training-state directory")
+                restored = load_state(root, resume, state, optimizer, config=contract, trusted=True)
+                start_step = restored["step"]
+                if restored["cursor"] != start_step:
+                    raise ValueError("checkpoint cursor does not match the paired schedule")
+                write("resume-source.json", dict(path=args.resume_state, **restored))
+            write("resume-config.json", contract)
+        end_step = start_step + args.steps
+        if end_step > expected_steps:
+            raise ValueError("requested steps exceed paired schedule")
+        for step in range(start_step, end_step):
+            started = time.monotonic()
+            torch.cuda.reset_peak_memory_stats()
             index = step % len(train)
-            batch, hook = prepare(enc[index], examples[index][0]["fragments"])
+            example = examples[index]
+            encoded = collate([example])[0] if enc is None else enc[index]
+            batch, hook = prepare(encoded, example[0]["fragments"])
             labels = batch.pop("labels")
             with hook:
                 hidden = base.model(**batch, use_cache=False).last_hidden_state
                 loss = chunked_causal_loss(hidden, base.lm_head, labels, chunk_size=128)
+                if not torch.isfinite(loss):
+                    raise RuntimeError("nonfinite training loss")
                 loss.backward()
             norm = torch.nn.utils.clip_grad_norm_(params, 1.0, error_if_nonfinite=True)
+            slot_grad = None
+            if memory is not None and memory.slot_queries.grad is not None:
+                slot_grad = float(memory.slot_queries.grad.norm())
+            check_names = (
+                [next(name for name in trainables if ".lora_B." in name)]
+                + (["structure.slot_queries"] if memory is not None else [])
+                if step == start_step
+                else []
+            )
+            before = {name: trainables[name].detach().clone() for name in check_names}
             optimizer.step()
+            deltas = {
+                name: float((trainables[name].detach() - value).norm())
+                for name, value in before.items()
+            }
+            if args.train_only and any(not delta > 0 for delta in deltas.values()):
+                raise RuntimeError("optimizer did not update the probed trainable tensors")
             optimizer.zero_grad(set_to_none=True)
             write(
                 f"step-{step + 1:03d}.json",
-                dict(group=train[index], loss=float(loss.detach()), norm=float(norm)),
+                dict(
+                    group=train[index],
+                    step=step + 1,
+                    epoch=step // len(train) + 1,
+                    loss=float(loss.detach()),
+                    norm=float(norm),
+                    slot_grad_norm=slot_grad,
+                    probed_parameter_deltas=deltas,
+                    tokens=labels.shape[1],
+                    elapsed_s=time.monotonic() - started,
+                    peak_allocated_bytes=torch.cuda.max_memory_allocated(),
+                ),
             )
             del loss, hidden
-        wrapped.save_pretrained(out / "lora")
+            if args.train_only and (
+                (step + 1) % args.checkpoint_every == 0 or step + 1 == end_step
+            ):
+                name = out / "training-state" / f"step-{step + 1:06d}"
+                save_state(
+                    root, name, state, optimizer, step=step + 1, cursor=step + 1, config=contract
+                )
+        wrapped.save_pretrained(out / "lora", safe_serialization=True)
         if memory is not None:
             torch.save(memory.state_dict(), out / "structure.pt")
             memory.eval()
+        if args.train_only:
+            paths = sorted((out / "lora").glob("*"))
+            if memory is not None:
+                paths.append(out / "structure.pt")
+            write(
+                "checkpoint-hashes.json",
+                {
+                    p.relative_to(out).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                    for p in paths
+                    if p.is_file()
+                },
+            )
+            write(
+                "summary.json",
+                dict(
+                    status="completed",
+                    scope="train_only",
+                    train_steps=end_step,
+                    expected_steps=expected_steps,
+                    complete=end_step == expected_steps,
+                    evaluated=0,
+                ),
+            )
+            return
         wrapped.eval()
         base.gradient_checkpointing_disable()
         base.config.use_cache = True
