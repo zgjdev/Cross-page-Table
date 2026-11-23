@@ -89,6 +89,7 @@ def main():
     parser.add_argument("--max-tokens", type=int, default=16384)
     parser.add_argument("--max-new-tokens", type=int, default=8192)
     parser.add_argument("--output-format", choices=("grid", "html"), default="grid")
+    parser.add_argument("--dtype", choices=("float32", "bfloat16"), default="float32")
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--train-only", action="store_true")
     parser.add_argument("--prepare-only", action="store_true")
@@ -155,7 +156,7 @@ def main():
                 heldout=heldout,
                 documents=docs,
                 track="image-only",
-                dtype="float32",
+                dtype=args.dtype,
                 split=(
                     "train_fit / train_dev fixed whole-table pilot"
                     if args.train_only
@@ -279,7 +280,10 @@ def main():
             return
         enc = None if args.train_only else collate(examples)
         base = Qwen3VLForConditionalGeneration.from_pretrained(
-            model_path, dtype=torch.float32, attn_implementation="sdpa", local_files_only=True
+            model_path,
+            dtype=getattr(torch, args.dtype),
+            attn_implementation="sdpa",
+            local_files_only=True,
         ).cuda()
         base.requires_grad_(False)
         wrapped = get_peft_model(
@@ -326,7 +330,7 @@ def main():
                 n,
                 torch.ones(v.shape[:2], device="cuda", dtype=torch.bool),
                 torch.ones(n.shape[:2], device="cuda", dtype=torch.bool),
-            )["prefix"]
+            )["prefix"].to(dtype=base.get_input_embeddings().weight.dtype)
             batch = prepend_prefix_inputs(batch, prefix.shape[1], placeholder[0])
             return batch, inject_prefix_embeddings(
                 base.get_input_embeddings(), batch["input_ids"], prefix
@@ -337,8 +341,9 @@ def main():
         start_step = 0
         if args.train_only:
             contract = dict(
-                schema="paired-whole-table-fp32-v1",
+                schema="paired-whole-table-v1",
                 arm=args.arm,
+                dtype=args.dtype,
                 epochs=args.epochs,
                 output=args.output_format,
                 max_tokens=args.max_tokens,
