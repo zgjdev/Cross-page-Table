@@ -32,6 +32,7 @@ MODEL_REVISION = "89644892e4d85e24eaac8bacfd4f463576704203"
 ORDER = ("page_num", "part_index")
 IDENTITY = ("group_id", "fragment_id", *ORDER)
 ARMS = ("local_image", "adjacent_same_table")
+TEXT_CONTROL = "adjacent_html_only"
 PROMPT = (
     "请重新识别最后标明的目标片段。目标图像是最终依据，已有 HTML 可能错列或漏格。"
     "可用的相邻片段仅用于判断列序与跨列单元格，禁止抄入它的任何行或文字。"
@@ -40,7 +41,7 @@ PROMPT = (
 )
 
 
-def select_cases(rows, seed):
+def select_cases(rows, seed, case_count=3):
     cohort = [
         row for row in rows if row["diagnostics"].get("failure_reasons") == ["column_mismatch"]
     ]
@@ -81,12 +82,19 @@ def select_cases(rows, seed):
                     )
                 )
                 break
-    if len(cases) < 3:
-        raise ValueError("fewer than three eligible column-conflict cases")
-    return random.Random(seed).sample(cases, 3), len(cases)
+    if not 3 <= case_count <= min(16, len(cases)):
+        raise ValueError("require 3–16 eligible column-conflict cases")
+    rng = random.Random(seed)
+    selected = rng.sample(cases, 3)
+    first_ids = {case["group_id"] for case in selected}
+    remaining = [case for case in cases if case["group_id"] not in first_ids]
+    selected.extend(rng.sample(remaining, case_count - 3))
+    return selected, len(cases)
 
 
 def arm_messages(example, case, mode):
+    if mode not in (*ARMS, TEXT_CONTROL):
+        raise ValueError("unknown visual repair arm")
     items = example["messages"][0]["content"][1:]
     pairs = list(zip(items[::2], items[1::2], strict=True))
     if len(pairs) != len(case["fragments"]) or any(
@@ -95,11 +103,13 @@ def arm_messages(example, case, mode):
     ):
         raise ValueError("baseline and verified upstream fragments differ")
     content = [dict(type="text", text=PROMPT)]
-    if mode == "adjacent_same_table":
+    if mode in ("adjacent_same_table", TEXT_CONTROL):
+        image, text = pairs[case["context"]]
         content.extend(
             [
                 dict(type="text", text="相邻片段及其已有识别，仅作列结构参考："),
-                *pairs[case["context"]],
+                *([image] if mode == "adjacent_same_table" else []),
+                text,
             ]
         )
     content.extend([dict(type="text", text="目标片段及其已有识别："), *pairs[case["target"]]])
@@ -155,7 +165,8 @@ def run(args):
     rows = json.loads(read(BASELINE / "predictions.json", BASELINE_PREDICTIONS_SHA))
     frozen = json.loads(read(BASELINE / "input-hashes.json", BASELINE_HASHES_SHA))
     baseline_manifest = json.loads(read(BASELINE / "run-manifest.json", BASELINE_MANIFEST_SHA))
-    cases, n_candidates = select_cases(rows, args.seed)
+    cases, n_candidates = select_cases(rows, args.seed, case_count=args.case_count)
+    arms = (*ARMS, TEXT_CONTROL) if args.text_control else ARMS
     groups = [case["group_id"] for case in cases]
 
     def pinned_read(path, expected=None):
@@ -174,7 +185,7 @@ def run(args):
     )
     examples, images = input_examples(root, config, pinned_read)
     selection = []
-    prompts = {arm: [] for arm in ARMS}
+    prompts = {arm: [] for arm in arms}
     for case, example in zip(cases, examples, strict=True):
         selection.append(
             dict(
@@ -184,7 +195,7 @@ def run(args):
                 context={k: case["fragments"][case["context"]][k] for k in IDENTITY},
             )
         )
-        for arm in ARMS:
+        for arm in arms:
             prompts[arm].append(
                 dict(
                     group_id=example["group_id"],
@@ -220,7 +231,8 @@ def run(args):
             hashes=hashes,
             generation=dict(dtype="bfloat16", sample=False, budget=args.max_new_tokens),
             split="train_fit",
-            scope="3-table qualitative mechanism probe",
+            scope="bounded column-conflict development probe",
+            arms=arms,
             gpu=args.gpu,
             prepare_only=args.prepare_only,
         ),
@@ -292,7 +304,7 @@ def run(args):
     predictions = {
         "unchanged": [align_group(c["group_id"], c["fragments"], c["fragments"]) for c in cases]
     }
-    for arm in ARMS:
+    for arm in arms:
         predictions[arm] = []
         for index, (example, case) in enumerate(zip(prompts[arm], cases, strict=True), 1):
             raw = generate([example], backend, args.max_new_tokens)[0]
@@ -301,7 +313,7 @@ def run(args):
             predictions[arm].append(repair["merged"])
     write("predictions.json", predictions)
 
-    # Ground truth is allowed only after both input-only arms have been persisted.
+    # Ground truth is allowed only after all input-only arms have been persisted.
     targets = [
         row
         for line in read(TARGETS, frozen[TARGETS.as_posix()]).decode("utf-8-sig").split("\n")
@@ -329,6 +341,8 @@ def main():
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--max-new-tokens", type=int, default=1280)
     parser.add_argument("--seed", type=int, default=20261123)
+    parser.add_argument("--case-count", type=int, default=3)
+    parser.add_argument("--text-control", action="store_true")
     parser.add_argument("--prepare-only", action="store_true")
     run(parser.parse_args())
 

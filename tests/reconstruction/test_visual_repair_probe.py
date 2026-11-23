@@ -34,6 +34,9 @@ def test_probe_selection_is_seeded_and_prediction_only(monkeypatch):
     assert candidates == 30 and len(cases) == 3
     assert cases == probe.select_cases(list(reversed(rows)), 1)[0]
     assert all(case["target"] == 1 and case["context"] == 0 for case in cases)
+    expanded, _ = probe.select_cases(rows, 1, case_count=8)
+    assert expanded[:3] == cases
+    assert len({case["group_id"] for case in expanded}) == 8
 
 
 def test_repair_uses_shared_target_and_preserves_other_fragment(monkeypatch):
@@ -47,6 +50,8 @@ def test_repair_uses_shared_target_and_preserves_other_fragment(monkeypatch):
     local, adjacent = [probe.arm_messages(example, case, mode)[0]["content"] for mode in probe.ARMS]
     assert local[-3:] == adjacent[-3:]
     assert [item["image"] for item in adjacent if item["type"] == "image"] == ["1.png", "0.png"]
+    text_only = probe.arm_messages(example, case, "adjacent_html_only")[0]["content"]
+    assert [item for item in adjacent if item.get("image") != "1.png"] == text_only
 
     good = probe.apply_repair(case, dict(status="completed", html=parts[1]["html"]))
     assert good["changed_dimensions"]["column_delta"] == 1
